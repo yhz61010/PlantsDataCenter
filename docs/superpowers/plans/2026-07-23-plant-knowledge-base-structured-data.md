@@ -84,7 +84,7 @@ __pycache__/
 | 13 | 元数据 | map | （必填） | `来源文件`、`来源工作表` |
 | — | 备注 | str | （仅异常时出现） | 导入时无法归类的原文兜底 |
 
-分类阶元值格式正则：`^[A-Z][A-Za-z ]+-.+\(.+\)$`
+分类阶元值格式正则（拼音可选）：`^[A-Z][A-Za-z ]+-[^()]+(\(.+\))?$`；学名允许杂交 `×` 记号。
 ````
 
 - [ ] **Step 4: Commit**
@@ -378,6 +378,12 @@ class TestParser(unittest.TestCase):
         r = load("knowledge/JK-锦葵科.xlsx", "蜀葵")
         self.assertIn("原产四川", r.get("备注", ""))
 
+    def test_tianrenju_redundant_rank_prefix_stripped(self):
+        # 天人菊：源数据把阶名冗余写进值（"界 Plantae-…"）；解析后应只留 "Plantae-…"。
+        r = load("knowledge/J-菊科.xlsx", "天人菊")
+        self.assertEqual(r["分类系统"]["界"], "Plantae-植物界(zhí wù jiè)")
+        self.assertEqual(r["分类系统"]["目"], "Asterales-菊目(jú mù)")
+
 if __name__ == "__main__":
     unittest.main()
 ```
@@ -409,6 +415,14 @@ def _clean_val(s):
 
 def _clean_syn(s):
     return _SYN_RE.sub("", s).strip()
+
+
+def _clean_rank(section, rank, val):
+    # 分类系统里个别源数据把阶名冗余地写进了值，如 "界 Plantae-植物界(...)"；去掉该前缀。
+    v = _clean_val(val)
+    if section == "分类系统" and v.startswith(rank):
+        v = v[len(rank):].strip()
+    return v
 
 
 def parse_species(rows, source_file, sheet_name):
@@ -451,7 +465,7 @@ def parse_species(rows, source_file, sheet_name):
             section = A; last_key = None; in_flora = False
             if B and C:
                 last_key = _clean_key(B)
-                sections[A][last_key] = _clean_val(C)
+                sections[A][last_key] = _clean_rank(A, last_key, C)
             elif B or C:
                 notes.append((B or "") + (C or ""))   # 区块标题行的异常内容
             prev_row = rn; continue
@@ -472,7 +486,7 @@ def parse_species(rows, source_file, sheet_name):
         elif section in SECTIONS:
             if B and C:
                 last_key = _clean_key(B)
-                sections[section][last_key] = _clean_val(C)
+                sections[section][last_key] = _clean_rank(section, last_key, C)
                 in_flora = False
             elif B:
                 notes.append(B)                        # B 有值 C 为空 → 兜底，不丢弃
@@ -512,7 +526,7 @@ def parse_species(rows, source_file, sheet_name):
 - [ ] **Step 4: 跑测试确认通过**
 
 Run: `python3 -m unittest tests.test_parser -v`
-Expected: PASS（13 tests）
+Expected: PASS（14 tests）
 
 - [ ] **Step 5: Commit**
 
@@ -568,7 +582,8 @@ class TestImport(unittest.TestCase):
 
     def test_all_fields_present_with_placeholders(self):
         paths = import_file("knowledge/KM-苦木科.xlsx", out_root=self.tmp)
-        data = yaml.safe_load(open(paths[0], encoding="utf-8"))
+        with open(paths[0], encoding="utf-8") as fh:
+            data = yaml.safe_load(fh)
         self.assertEqual(data["功用价值"], "暂无数据")
         self.assertEqual(data["物种保护"], "暂无数据")
         self.assertEqual(
@@ -576,7 +591,8 @@ class TestImport(unittest.TestCase):
 
     def test_yaml_is_unicode_not_escaped(self):
         paths = import_file("knowledge/KM-苦木科.xlsx", out_root=self.tmp)
-        text = open(paths[0], encoding="utf-8").read()
+        with open(paths[0], encoding="utf-8") as fh:
+            text = fh.read()
         self.assertIn("臭椿", text)
         self.assertNotIn("\\u", text)
 
@@ -610,6 +626,10 @@ def dump_species(rec):
 ```python
 import argparse
 import os
+import sys
+
+# 允许以 `python3 scripts/import_xlsx.py ...` 直接运行（把仓库根加入 sys.path）
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from scripts.xlsx_reader import read_sheets
 from scripts.parser import parse_species
@@ -742,6 +762,18 @@ class TestValidate(unittest.TestCase):
         ok = dict(GOOD); ok["分类系统"] = "暂无数据"
         self.assertEqual(validate_record(ok, "data/苦木科/臭椿.yaml"), [])
 
+    def test_hybrid_scientific_name_ok(self):
+        # 杂交种名带 × 记号是合法二名法，不应报错。
+        ok = dict(GOOD); ok["学名"] = "Yulania × soulangeana (Soul.-Bod.) D. L. Fu"
+        ok["中文名"] = "二乔玉兰"
+        self.assertEqual(validate_record(ok, "data/木兰科/二乔玉兰.yaml"), [])
+
+    def test_taxonomy_without_pinyin_ok(self):
+        # 个别源数据分类阶缺拼音（如 'Ericales-杜鹃花目'），拼音可选，应放行。
+        ok = dict(GOOD)
+        ok["分类系统"] = dict(GOOD["分类系统"], 目="Ericales-杜鹃花目")
+        self.assertEqual(validate_record(ok, "data/苦木科/臭椿.yaml"), [])
+
     def test_common_name_list_or_placeholder(self):
         bad = dict(GOOD); bad["俗名"] = 123
         errs = validate_record(bad, "data/苦木科/臭椿.yaml")
@@ -775,8 +807,10 @@ RANKS = ("界", "门", "纲", "目", "科", "属")
 REQUIRED_FIELDS = ("学名", "中文名", "俗名", "异名", "描述", "分类系统", "物种保护",
                    "分类信息", "形态特征", "生态习性", "功用价值", "植物志", "元数据")
 PLACEHOLDERS = ("无", "暂无数据")
-_TAX_RE = re.compile(r"^[A-Z][A-Za-z ]+-.+\(.+\)$")
-_NAME_RE = re.compile(r"^[A-Z][a-z]+ [a-z]")
+# 分类阶：拉丁名-中文，拼音可选（个别物种源数据缺拼音）
+_TAX_RE = re.compile(r"^[A-Z][A-Za-z ]+-[^()]+(\(.+\))?$")
+# 二名法：允许杂交属种名的 × 记号（如 Yulania × soulangeana）
+_NAME_RE = re.compile(r"^[A-Z][a-z]+ (×\s+)?[a-z]")
 
 
 def validate_record(rec, path):
@@ -846,7 +880,7 @@ if __name__ == "__main__":
 - [ ] **Step 4: 跑测试确认通过**
 
 Run: `python3 -m unittest tests.test_validate -v`
-Expected: PASS（7 tests）
+Expected: PASS（9 tests）
 
 - [ ] **Step 5: 对已导入的苦木科跑校验**
 
@@ -896,9 +930,11 @@ class TestExport(unittest.TestCase):
     def test_export_json_valid_and_unicode(self):
         recs = load_all("data")
         out = export_json(recs, os.path.join(self.tmp, "plants.json"))
-        data = json.load(open(out, encoding="utf-8"))
+        with open(out, encoding="utf-8") as fh:
+            data = json.load(fh)
         self.assertEqual(data[0]["中文名"], sorted(r["中文名"] for r in recs)[0])
-        raw = open(out, encoding="utf-8").read()
+        with open(out, encoding="utf-8") as fh:
+            raw = fh.read()
         self.assertIn("臭椿", raw)          # ensure_ascii=False
 
     def test_markdown_has_frontmatter_body_and_skips_placeholders(self):
@@ -931,6 +967,10 @@ import argparse
 import glob
 import json
 import os
+import sys
+
+# 允许以 `python3 scripts/export.py ...` 直接运行（把仓库根加入 sys.path）
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import yaml
 
