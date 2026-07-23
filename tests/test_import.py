@@ -39,5 +39,20 @@ class TestImport(unittest.TestCase):
         self.assertIn("臭椿", text)
         self.assertNotIn("\\u", text)
 
+    def test_duplicate_chinese_name_not_overwritten(self):
+        # 同科内两个工作表解出相同中文名时，第二个不得静默覆盖第一个。
+        import scripts.import_xlsx as mod
+        rows = [{"r": 1, "A": "中文名", "B": "重名"}]
+        orig = mod.read_sheets
+        mod.read_sheets = lambda p: [("表一", rows), ("表二", rows)]
+        try:
+            paths = mod.import_file("X-测试科.xlsx", out_root=self.tmp)
+        finally:
+            mod.read_sheets = orig
+        self.assertEqual(len(paths), 2)
+        self.assertEqual(len(set(paths)), 2)          # 两个不同路径，都保留
+        for p in paths:
+            self.assertTrue(os.path.exists(p))
+
 if __name__ == "__main__":
     unittest.main()

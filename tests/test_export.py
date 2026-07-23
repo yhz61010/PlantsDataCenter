@@ -11,6 +11,25 @@ class TestExport(unittest.TestCase):
         recs = load_all("data")
         self.assertTrue(any(r["中文名"] == "臭椿" for r in recs))
 
+    def test_load_all_skips_empty_yaml(self):
+        # 空 YAML 文件不应让整个导出崩溃，应跳过并告警。
+        os.makedirs(os.path.join(self.tmp, "空科"), exist_ok=True)
+        open(os.path.join(self.tmp, "空科", "空.yaml"), "w").close()
+        with open(os.path.join(self.tmp, "空科", "臭椿.yaml"), "w", encoding="utf-8") as fh:
+            fh.write("中文名: 臭椿\n学名: Ailanthus altissima\n")
+        recs = load_all(self.tmp)
+        self.assertEqual([r["中文名"] for r in recs], ["臭椿"])
+
+    def test_export_json_bare_filename(self):
+        # 裸文件名（dirname 为空）不应让 makedirs 崩溃。
+        cwd = os.getcwd()
+        os.chdir(self.tmp)
+        try:
+            out = export_json([{"中文名": "臭椿"}], "plants.json")
+            self.assertTrue(os.path.exists(os.path.join(self.tmp, out)))
+        finally:
+            os.chdir(cwd)
+
     def test_export_json_valid_and_unicode(self):
         recs = load_all("data")
         out = export_json(recs, os.path.join(self.tmp, "plants.json"))

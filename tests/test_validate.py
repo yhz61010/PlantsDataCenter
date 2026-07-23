@@ -69,5 +69,11 @@ class TestValidate(unittest.TestCase):
         errs = validate_record(GOOD, "data/苦木科/错误名.yaml")
         self.assertTrue(any("文件名" in e for e in errs))
 
+    def test_empty_yaml_reported_not_crashed(self):
+        # 空 YAML 文件 → yaml.safe_load 返回 None，应报错而非崩溃。
+        errs = validate_record(None, "data/苦木科/空.yaml")
+        self.assertEqual(len(errs), 1)
+        self.assertIn("无法解析为映射", errs[0])
+
 if __name__ == "__main__":
     unittest.main()

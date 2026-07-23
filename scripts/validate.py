@@ -17,6 +17,8 @@ _NAME_RE = re.compile(r"^[A-Z][a-z]+ (×\s+)?[a-z]")
 
 
 def validate_record(rec, path):
+    if not isinstance(rec, dict):
+        return [f"{path}: 无法解析为映射（空文件或格式错误）"]
     errs = []
     for field in REQUIRED_FIELDS:
         if field not in rec:
