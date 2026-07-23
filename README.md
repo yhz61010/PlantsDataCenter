@@ -37,10 +37,44 @@ PlantsDataCenter/
 
 完整字段定义见 [`schema/plant.schema.md`](schema/plant.schema.md)。
 
+## 环境与依赖
+
+管线**只有一个第三方依赖：PyYAML**；其余全部使用 Python 标准库
+（`zipfile` / `xml.etree` / `json` / `sqlite3` / `unittest` 等）。
+
+| 依赖 | 版本 | 用途 |
+|------|------|------|
+| Python | 3.9+（开发于 3.11） | 运行全部脚本 |
+| PyYAML | 6.x | 读写 `data/**/*.yaml` |
+
+**安装 PyYAML（任选一种）：**
+
+```bash
+# ① pip（最通用）
+pip3 install pyyaml
+#    若 pip3 找不到，用：python3 -m pip install pyyaml
+
+# ② Debian/Ubuntu 系统包
+sudo apt update && sudo apt install python3-yaml
+
+# ③ 若 pip 报 "externally-managed-environment"（较新 Debian/Ubuntu）
+sudo apt install python3-yaml            # 推荐用系统包
+# 或（仅个人环境）：pip3 install --break-system-packages pyyaml
+
+# ④ 虚拟环境（不想污染系统 Python 时）
+python3 -m venv .venv && source .venv/bin/activate && pip install pyyaml
+```
+
+**验证：**
+
+```bash
+python3 -c "import yaml; print('PyYAML', yaml.__version__)"   # 打印版本号即 OK
+```
+
 ## 快速开始
 
-环境：Python 3.11+ 与系统 PyYAML（`python3 -c "import yaml"` 能通过即可）。所有脚本自带 `sys.path` 引导，
-从仓库根直接运行。
+前置：已按上节装好 PyYAML。所有脚本自带 `sys.path` 引导，可从仓库根直接运行（无需 `cd` 进 `scripts/`
+或设置 `PYTHONPATH`）。
 
 ```bash
 # 从 xlsx 导入 / 重建真相源（幂等，重跑覆盖同名文件）
