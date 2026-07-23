@@ -1,6 +1,14 @@
 import unittest
 
-from scripts.retrieve_context import extract_terms, format_prompt, interested_fields, retrieve, taxonomy_terms
+from scripts.retrieve_context import (
+    default_limit,
+    extract_terms,
+    format_context,
+    format_prompt,
+    interested_fields,
+    retrieve,
+    taxonomy_terms,
+)
 
 
 RECORDS = [
@@ -113,6 +121,33 @@ class TestRetrieveContext(unittest.TestCase):
         ]
         hits = retrieve(records, "木兰科有哪些植物")
         self.assertEqual([hit["record"]["中文名"] for hit in hits], ["二乔玉兰", "玉兰"])
+
+    def test_taxonomy_list_query_default_limit_is_unbounded(self):
+        records = [
+            {
+                "学名": f"Rosa test{i}",
+                "中文名": f"蔷薇测试{i}",
+                "俗名": "无",
+                "异名": "无",
+                "描述": "暂无数据",
+                "分类系统": {"科": "Rosaceae-蔷薇科(qiáng wēi kē)", "属": "Rosa-蔷薇属"},
+                "形态特征": "暂无数据",
+                "生态习性": "暂无数据",
+                "功用价值": "暂无数据",
+                "物种保护": "暂无数据",
+                "分类信息": "暂无数据",
+                "植物志": "暂无数据",
+                "元数据": {"来源文件": "QW-蔷薇科.xlsx", "来源工作表": f"蔷薇测试{i}"},
+            }
+            for i in range(6)
+        ]
+        self.assertIsNone(default_limit(records, "蔷薇科植物有哪些？"))
+        self.assertEqual(len(retrieve(records, "蔷薇科植物有哪些？", limit=default_limit(records, "蔷薇科植物有哪些？"))), 6)
+
+        all_hits = retrieve(records, "蔷薇科植物有哪些？", limit=None)
+        context = format_context(all_hits[:5], "蔷薇科植物有哪些？", total=len(all_hits))
+        self.assertIn("总命中记录：6", context)
+        self.assertIn("显示记录：5", context)
 
     def test_belongs_to_question_keeps_species_context(self):
         records = RECORDS + [

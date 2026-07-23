@@ -72,6 +72,7 @@ STOP_TERMS = {
     "价值",
 }
 QUESTION_MARKERS = ("什么", "哪些", "有哪", "哪个", "哪种", "属于")
+LIST_QUERY_MARKERS = ("哪些", "有哪", "有哪些", "列出", "名单", "列表")
 
 
 def _norm(s):
@@ -216,6 +217,17 @@ def _has_rank_query(query, rank_vocab=None):
     )
 
 
+def _is_list_query(query):
+    return any(marker in query for marker in LIST_QUERY_MARKERS)
+
+
+def default_limit(records, query):
+    rank_vocab = taxonomy_terms(records)
+    if _has_rank_query(query, rank_vocab=rank_vocab) and _is_list_query(query):
+        return None
+    return 5
+
+
 def retrieve(records, query, limit=5, min_score=1):
     rank_vocab = taxonomy_terms(records)
     rank_query = _has_rank_query(query, rank_vocab=rank_vocab)
@@ -225,6 +237,8 @@ def retrieve(records, query, limit=5, min_score=1):
     hits = [score_record(record, query, terms, rank_query=rank_query) for record in candidates]
     hits = [hit for hit in hits if hit["score"] >= min_score]
     hits.sort(key=lambda h: (-h["score"], h["record"].get("中文名") or ""))
+    if limit is None or limit <= 0:
+        return hits
     return hits[:limit]
 
 
@@ -254,16 +268,19 @@ def _selected_fields(query, explicit_fields=None):
     return list(DEFAULT_CONTEXT_FIELDS)
 
 
-def format_context(hits, query, fields=None):
+def format_context(hits, query, fields=None, total=None):
+    total = len(hits) if total is None else total
     selected = _selected_fields(query, fields)
     lines = [
         "# 检索上下文",
         "",
         f"问题：{query}",
         "",
-        f"命中记录：{len(hits)}",
-        "",
     ]
+    if total == len(hits):
+        lines.extend([f"命中记录：{total}", ""])
+    else:
+        lines.extend([f"总命中记录：{total}", f"显示记录：{len(hits)}", ""])
     if not hits:
         lines.append("未找到匹配记录。")
         return "\n".join(lines)
@@ -287,8 +304,8 @@ def format_context(hits, query, fields=None):
     return "\n".join(lines).rstrip() + "\n"
 
 
-def format_prompt(hits, query, fields=None):
-    context = format_context(hits, query, fields=fields)
+def format_prompt(hits, query, fields=None, total=None):
+    context = format_context(hits, query, fields=fields, total=total)
     return "\n".join(
         [
             "请只根据下面资料回答问题。资料中没有的信息，请明确说“资料中未提供”。",
@@ -315,7 +332,7 @@ def main():
     ap = argparse.ArgumentParser(description="从 data/ 检索与问题相关的物种记录，生成 AI 可用上下文")
     ap.add_argument("query", nargs="+", help="问题或关键词，例如：臭椿有什么形态特征和用途")
     ap.add_argument("--root", default="data", help="YAML 数据根目录，默认 data")
-    ap.add_argument("--limit", type=int, default=5, help="最多返回多少条记录，默认 5")
+    ap.add_argument("--limit", type=int, help="最多返回多少条记录；分类列举查询默认返回全部，其余默认 5；0 表示全部")
     ap.add_argument("--min-score", type=int, default=1, help="最低匹配分数，默认 1")
     ap.add_argument("--fields", help="逗号分隔的输出字段，例如：分类系统,形态特征,功用价值")
     ap.add_argument("--json", action="store_true", help="输出结构化 JSON")
@@ -324,14 +341,22 @@ def main():
 
     query = " ".join(args.query).strip()
     records = load_all(args.root)
-    hits = retrieve(records, query, limit=args.limit, min_score=args.min_score)
+    limit = default_limit(records, query) if args.limit is None else args.limit
+    all_hits = retrieve(records, query, limit=None, min_score=args.min_score)
+    hits = all_hits if limit is None or limit <= 0 else all_hits[:limit]
 
     if args.json:
-        print(json.dumps({"query": query, "count": len(hits), "results": _json_hits(hits)}, ensure_ascii=False, indent=2))
+        print(
+            json.dumps(
+                {"query": query, "total_count": len(all_hits), "count": len(hits), "results": _json_hits(hits)},
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
     elif args.prompt:
-        print(format_prompt(hits, query, fields=args.fields))
+        print(format_prompt(hits, query, fields=args.fields, total=len(all_hits)))
     else:
-        print(format_context(hits, query, fields=args.fields))
+        print(format_context(hits, query, fields=args.fields, total=len(all_hits)))
 
 
 if __name__ == "__main__":
