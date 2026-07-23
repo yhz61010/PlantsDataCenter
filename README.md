@@ -61,14 +61,58 @@ python3 -m unittest discover -s tests
 
 ## 脚本
 
-| 脚本 | 作用 |
-|------|------|
-| `scripts/import_xlsx.py` | 从 WPS xlsx 解析物种记录并写出 `data/**/*.yaml`；同科中文名重复不静默覆盖，改带序号文件名并告警 |
-| `scripts/validate.py`    | 校验 13 字段齐全、占位放行、`学名`/`中文名` 为真实值、分类阶格式合规；空/非映射 YAML 报错而非崩溃 |
-| `scripts/export.py`      | 导出 `dist/plants.json`、`dist/md/*.md`、`dist/plants.sqlite`；占位区块不渲染进 Markdown、不入库 |
-| `scripts/xlsx_reader.py` | 读 WPS xlsx 的 A/B/C 列网格（跳过内嵌图片工作表与 `=DISPIMG(` 公式） |
-| `scripts/parser.py`      | 区块状态机：把行网格解析为 13 字段记录（gap 判定植物志、占位补全、无法归类段落兜底进 `备注`） |
-| `scripts/yaml_io.py`     | 统一 YAML 序列化（中文不转义、字段顺序稳定、长行不折断） |
+分两类：**3 个直接运行的 CLI 入口** + **3 个被复用、不单独运行的模块**。
+
+### 直接运行的 CLI（`python3 scripts/<名>.py`）
+
+| 脚本 | 何时使用 | 作用 |
+|------|---------|------|
+| `import_xlsx.py` | **一次性/偶尔**：需要从 `knowledge/*.xlsx` 重新生成或核对 `data/` 真相源时。日常不用（日常直接编辑 `data/*.yaml`）。 | 解析 xlsx 写出 `data/**/*.yaml`；同科中文名重复不静默覆盖，改带序号文件名并告警 |
+| `validate.py`    | **每次改完 `data/` 之后**：把关字段与格式（适合接 CI / pre-commit）。 | 校验 13 字段齐全、占位放行、`学名`/`中文名` 为真实值、分类阶格式合规；空/非映射 YAML 报错而非崩溃 |
+| `export.py`      | **对外发布 / 供程序或 AI 消费时**：把真相源导出为多种格式。 | 生成 `dist/plants.json`、`dist/md/*.md`、`dist/plants.sqlite`；占位区块不渲染进 Markdown、不入库 |
+
+**典型工作流**：改 `data/*.yaml` → `validate.py`（把关）→ `export.py`（重建 `dist/`）。`import_xlsx.py` 只在从 xlsx 重来时才用。
+
+### 被复用的模块（不单独运行，被上面的 CLI `import` 调用）
+
+| 模块 | 作用 | 谁在用 |
+|------|------|--------|
+| `xlsx_reader.py` | 读 WPS xlsx 的 A/B/C 列网格（跳过内嵌图片工作表与 `=DISPIMG(` 公式） | `import_xlsx.py` |
+| `parser.py`      | 区块状态机：把行网格解析为 13 字段记录（gap 判定植物志、占位补全、无法归类段落兜底进 `备注`、中文名去拼音） | `import_xlsx.py` |
+| `yaml_io.py`     | 统一 YAML 序列化（中文不转义、字段顺序稳定、长行不折断） | `import_xlsx.py`、`export.py` |
+
+## 新增或修改 Excel 后如何重跑
+
+Excel 原始数据在 `knowledge/`，文件名须遵循 `<拼音首字母>-<中文科名>.xlsx`（如 `KM-苦木科.xlsx`）——
+科目录名就是文件名去掉拼音前缀的部分。改动 xlsx 后按下面重跑三步：**导入 → 校验 → 重建导出**。
+
+**A. 新增一个科（放入一个新 xlsx）**
+
+```bash
+python3 scripts/import_xlsx.py knowledge/XX-新科.xlsx   # 只导这一个
+python3 scripts/validate.py
+rm -rf dist && python3 scripts/export.py
+```
+
+**B. 修改已有科的 xlsx（增 / 删 / 改物种）**
+
+```bash
+python3 scripts/import_xlsx.py knowledge/XX-某科.xlsx   # 重导该科
+python3 scripts/validate.py
+rm -rf dist && python3 scripts/export.py
+```
+
+**C. 一次性重导全部**
+
+```bash
+python3 scripts/import_xlsx.py knowledge/*.xlsx
+python3 scripts/validate.py
+rm -rf dist && python3 scripts/export.py
+```
+
+> ⚠️ **两个要点**
+> 1. **导入会覆盖 `data/`**：`import_xlsx.py` 以 xlsx 为准重写对应物种的 YAML。若你之前**手工改过** `data/` 里这些物种，重导会覆盖掉那些改动。只有当 xlsx 才是你这次更新的地方时才重导；日常微调建议直接改 `data/*.yaml`，不必走 xlsx。
+> 2. **导入只覆盖/新增、不删除**：若你在 xlsx 里**删除或重命名**了某物种，旧的 `data/<科>/<旧名>.yaml` 会残留。请手动删除它，或先 `rm -rf data/<科>` 再重导该科，保证 `data/` 与 xlsx 一致。
 
 ## 数据来源与说明
 
