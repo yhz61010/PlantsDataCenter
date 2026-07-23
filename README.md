@@ -3,8 +3,8 @@
 一个植物学参考知识库。以**逐物种的 YAML** 为唯一真相源，可一键导出为 JSON / Markdown / SQLite，
 供程序读取、二次开发与 AI/RAG 使用。
 
-- **19 科 · 42 物种**
-- **零第三方依赖**：Python 3.11 标准库 + 系统预装 PyYAML（无需 `pip`/`openpyxl`）
+- **44 科 · 107 物种**
+- **一个运行时依赖**：Python 3.11+ + PyYAML（无需 `openpyxl`）
 - **单向管线**：`knowledge/*.xlsx`（历史原始数据）→ `data/**/*.yaml`（真相源）→ `dist/*`（派生物）
 
 ## 目录结构
@@ -17,7 +17,7 @@ PlantsDataCenter/
 │   ├── plants.json
 │   ├── plants.sqlite
 │   └── md/<物种>.md
-├── scripts/            # 零依赖 Python 管线（3 个 CLI + 3 个复用模块）
+├── scripts/            # Python 数据管线（3 个 CLI + 3 个复用模块）
 ├── schema/             # 字段规范（人读的权威定义）
 ├── tests/              # 单元测试（python3 -m unittest）
 ├── docs/               # 设计文档与实现计划（superpowers 产物）
@@ -39,12 +39,12 @@ PlantsDataCenter/
 
 ## 环境与依赖
 
-管线**只有一个第三方依赖：PyYAML**；其余全部使用 Python 标准库
+默认环境需要 Python 和 PyYAML。除 YAML 读写外，其余能力使用 Python 标准库
 （`zipfile` / `xml.etree` / `json` / `sqlite3` / `unittest` 等）。
 
 | 依赖 | 版本 | 用途 |
 |------|------|------|
-| Python | 3.9+（开发于 3.11） | 运行全部脚本 |
+| Python | 3.11+ | 运行全部脚本 |
 | PyYAML | 6.x | 读写 `data/**/*.yaml` |
 
 **安装 PyYAML（任选一种）：**
@@ -71,10 +71,32 @@ python3 -m venv .venv && source .venv/bin/activate && pip install pyyaml
 python3 -c "import yaml; print('PyYAML', yaml.__version__)"   # 打印版本号即 OK
 ```
 
+## Git LFS 数据文件
+
+`knowledge/*.xlsx` 由 Git LFS 管理。新 clone 的用户需要先安装并初始化 Git LFS，否则这些文件可能只是
+指针文件，无法被 `scripts/import_xlsx.py` 正常读取。
+
+```bash
+# 首次使用 Git LFS
+git lfs install
+
+# clone 后下载 knowledge/ 下的 Excel 实体文件
+git lfs pull --include="knowledge/*.xlsx"
+
+# 若已经 clone 过，也可以重新拉取缺失的 LFS 对象
+git lfs fetch --include="knowledge/*.xlsx"
+git lfs checkout
+```
+
+检查文件是否已经下载为真实 xlsx：
+
+```bash
+file knowledge/KM-苦木科.xlsx
+```
+
 ## 快速开始
 
-前置：已按上节装好 PyYAML。所有脚本自带 `sys.path` 引导，可从仓库根直接运行（无需 `cd` 进 `scripts/`
-或设置 `PYTHONPATH`）。
+所有脚本自带 `sys.path` 引导，可从仓库根直接运行（无需 `cd` 进 `scripts/` 或设置 `PYTHONPATH`）。
 
 ```bash
 # 从 xlsx 导入 / 重建真相源（幂等，重跑覆盖同名文件）
