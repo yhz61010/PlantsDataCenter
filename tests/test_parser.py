@@ -109,5 +109,11 @@ class TestParser(unittest.TestCase):
         r = load("knowledge/JK-锦葵科.xlsx", "蜀葵")
         self.assertIn("原产四川", r.get("备注", ""))
 
+    def test_tianrenju_redundant_rank_prefix_stripped(self):
+        # 天人菊：源数据把阶名冗余写进值（"界 Plantae-…"）；解析后应只留 "Plantae-…"。
+        r = load("knowledge/J-菊科.xlsx", "天人菊")
+        self.assertEqual(r["分类系统"]["界"], "Plantae-植物界(zhí wù jiè)")
+        self.assertEqual(r["分类系统"]["目"], "Asterales-菊目(jú mù)")
+
 if __name__ == "__main__":
     unittest.main()

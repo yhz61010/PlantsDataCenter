@@ -19,6 +19,14 @@ def _clean_syn(s):
     return _SYN_RE.sub("", s).strip()
 
 
+def _clean_rank(section, rank, val):
+    # 分类系统里个别源数据把阶名冗余地写进了值，如 "界 Plantae-植物界(...)"；去掉该前缀。
+    v = _clean_val(val)
+    if section == "分类系统" and v.startswith(rank):
+        v = v[len(rank):].strip()
+    return v
+
+
 def parse_species(rows, source_file, sheet_name):
     name = xueming = None
     desc_lines, common, synonyms, flora, notes = [], [], [], [], []
@@ -59,7 +67,7 @@ def parse_species(rows, source_file, sheet_name):
             section = A; last_key = None; in_flora = False
             if B and C:
                 last_key = _clean_key(B)
-                sections[A][last_key] = _clean_val(C)
+                sections[A][last_key] = _clean_rank(A, last_key, C)
             elif B or C:
                 notes.append((B or "") + (C or ""))   # 区块标题行的异常内容
             prev_row = rn; continue
@@ -80,7 +88,7 @@ def parse_species(rows, source_file, sheet_name):
         elif section in SECTIONS:
             if B and C:
                 last_key = _clean_key(B)
-                sections[section][last_key] = _clean_val(C)
+                sections[section][last_key] = _clean_rank(section, last_key, C)
                 in_flora = False
             elif B:
                 notes.append(B)                        # B 有值 C 为空 → 兜底，不丢弃

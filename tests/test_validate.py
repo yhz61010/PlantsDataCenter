@@ -48,6 +48,18 @@ class TestValidate(unittest.TestCase):
         ok = dict(GOOD); ok["分类系统"] = "暂无数据"
         self.assertEqual(validate_record(ok, "data/苦木科/臭椿.yaml"), [])
 
+    def test_hybrid_scientific_name_ok(self):
+        # 杂交种名带 × 记号是合法二名法，不应报错。
+        ok = dict(GOOD); ok["学名"] = "Yulania × soulangeana (Soul.-Bod.) D. L. Fu"
+        ok["中文名"] = "二乔玉兰"
+        self.assertEqual(validate_record(ok, "data/木兰科/二乔玉兰.yaml"), [])
+
+    def test_taxonomy_without_pinyin_ok(self):
+        # 个别源数据分类阶缺拼音（如 'Ericales-杜鹃花目'），拼音可选，应放行。
+        ok = dict(GOOD)
+        ok["分类系统"] = dict(GOOD["分类系统"], 目="Ericales-杜鹃花目")
+        self.assertEqual(validate_record(ok, "data/苦木科/臭椿.yaml"), [])
+
     def test_common_name_list_or_placeholder(self):
         bad = dict(GOOD); bad["俗名"] = 123
         errs = validate_record(bad, "data/苦木科/臭椿.yaml")
