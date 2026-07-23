@@ -54,6 +54,17 @@ class TestValidate(unittest.TestCase):
         ok["中文名"] = "二乔玉兰"
         self.assertEqual(validate_record(ok, "data/木兰科/二乔玉兰.yaml"), [])
 
+    def test_horticultural_scientific_names_ok(self):
+        cultivar = dict(GOOD)
+        cultivar["学名"] = "Malus 'Royalty'"
+        cultivar["中文名"] = "王族海棠"
+        self.assertEqual(validate_record(cultivar, "data/蔷薇科/王族海棠.yaml"), [])
+
+        group = dict(GOOD)
+        group["学名"] = "Rosa (Climbers Group)"
+        group["中文名"] = "藤本月季"
+        self.assertEqual(validate_record(group, "data/蔷薇科/藤本月季.yaml"), [])
+
     def test_taxonomy_without_pinyin_ok(self):
         # 个别源数据分类阶缺拼音（如 'Ericales-杜鹃花目'），拼音可选，应放行。
         ok = dict(GOOD)
