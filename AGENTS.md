@@ -2,31 +2,31 @@
 
 ## 项目结构与模块组织
 
-PlantsDataCenter 是植物知识结构化数据仓库。`data/` 是唯一真相源，当前包含 44 科、107 个 `*.yaml` 物种文件，路径为 `data/<中文科名>/<中文物种名>.yaml`。`knowledge/` 保存 44 个 WPS/Excel 原始工作簿，已由 Git LFS 管理，只在重导或核对原文时使用。`scripts/` 是 Python 数据管线，CLI 入口为 `import_xlsx.py`、`validate.py`、`export.py`、`retrieve_context.py`，复用模块为 `xlsx_reader.py`、`parser.py`、`yaml_io.py`。`schema/plant.schema.md` 定义字段规范，`tests/` 放 `unittest`，`docs/superpowers/` 放设计与计划文档。`dist/` 是可重建导出物，已忽略，不作为提交对象。
+PlantsDataCenter 是植物知识结构化数据仓库。`data/` 是唯一真相源，当前包含 44 科、107 个 `*.yaml` 物种文件，路径为 `data/<中文科名>/<中文物种名>.yaml`。`knowledge/` 保存 44 个 WPS/Excel 原始工作簿，已由 Git LFS 管理，只在重导或核对原文时使用。`scripts/` 是 Python 数据管线，CLI 入口为 `import_xlsx.py`、`validate.py`、`export.py`、`retrieve_context.py`，复用模块为 `xlsx_reader.py`、`parser.py`、`yaml_io.py`。`schema/plant.schema.md` 定义字段规范，`tests/` 放 `unittest`，`docs/superpowers/specs/` 与 `docs/superpowers/plans/` 放设计和实现计划。`dist/` 是可重建导出物，已忽略，不作为提交对象。
 
 ## Build, Test, and Development Commands
 
 所有命令从仓库根目录运行：
 
-- `git lfs install && git lfs pull --include="knowledge/*.xlsx"`：新 clone 后下载 Excel 实体文件。
+- `git lfs install && git lfs pull --include="knowledge/*.xlsx"`：新 clone 后下载 Excel 实体文件；若仍是指针文件，补跑 `git lfs fetch --include="knowledge/*.xlsx" && git lfs checkout`。
 - `python3 scripts/import_xlsx.py knowledge/*.xlsx`：从 xlsx 重建 `data/**/*.yaml`；覆盖同名记录，但不删除旧文件。
 - `python3 scripts/validate.py`：校验全部 YAML 记录。
 - `python3 scripts/export.py`：生成 `dist/plants.json`、`dist/md/*.md`、`dist/plants.sqlite`。
 - `python3 scripts/export.py --only json,md`：只导出指定格式。
-- `python3 scripts/retrieve_context.py "臭椿有什么用途" --prompt`：为 AI 问答生成 grounded context。
+- `python3 scripts/retrieve_context.py "臭椿有什么用途" --prompt`：为 AI 问答生成 grounded context；`--json` 供自动化集成，`--fields 分类系统,功用价值` 可限制上下文字段。
 - `python3 -m unittest discover -s tests`：运行单元测试。
 
 日常修改优先编辑 `data/*.yaml`，再运行校验和测试；只有 Excel 是变更来源时才重跑导入。
 
 ## Coding Style & Naming Conventions
 
-Python 目标环境为 3.11+，运行时依赖 PyYAML 6.x；xlsx 读取使用标准库，不要求 `openpyxl`。Python 代码使用 4 空格缩进，保持 CLI 可通过 `python3 scripts/<name>.py` 直接运行。代码注释与 Git commit message 使用英文；协作文档和用户沟通默认中文。
+Python 目标环境为 3.11+，运行时依赖 PyYAML 6.x；xlsx 读取使用仓库内 `scripts/xlsx_reader.py` 和标准库，不要求 `openpyxl`。Python 代码使用 4 空格缩进，保持 CLI 可通过 `python3 scripts/<name>.py` 直接运行。代码注释与 Git commit message 使用英文；协作文档和用户沟通默认中文。
 
 YAML 使用 UTF-8，中文不转义，字段顺序保持稳定。每条记录保留 13 个固定字段：`学名`、`中文名`、`俗名`、`异名`、`描述`、`分类系统`、`物种保护`、`分类信息`、`形态特征`、`生态习性`、`功用价值`、`植物志`、`元数据`。文件名必须与 `中文名` 一致且不带拼音括注。`俗名`、`异名` 缺失时写 `"无"`；映射型区块缺失时写 `"暂无数据"`。
 
 ## Testing Guidelines
 
-修改解析、导入、校验、导出、检索或 YAML 序列化逻辑时，在 `tests/test_*.py` 中补充 `unittest`。测试应覆盖真实记录结构、占位归一、重复中文名、非法 YAML、学名格式、导出 JSON/Markdown/SQLite、问答上下文召回等有业务价值的边界。交付前至少运行：
+修改解析、导入、校验、导出、检索或 YAML 序列化逻辑时，在 `tests/test_*.py` 中补充 `unittest`；当前测试套件为 59 项。测试应覆盖真实记录结构、占位归一、重复中文名、非法 YAML、学名格式、导出 JSON/Markdown/SQLite、问答上下文召回等有业务价值的边界。检索测试要同时保护分类列举查询默认全量返回、`--limit` 的总数/显示数语义，以及单字中文名（如 `槐`、`桃`、`莲`、`桑`、`艾`）在自然问句中的边界匹配，避免 `桑拿`、`艾滋病`、`构造` 这类无关子串误锁。交付前至少运行：
 
 ```bash
 python3 scripts/validate.py
