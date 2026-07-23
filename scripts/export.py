@@ -13,17 +13,28 @@ import yaml
 from scripts.yaml_io import dump_species  # 复用统一序列化风格（frontmatter）
 
 
+def _ensure_dir(path):
+    # os.path.dirname("plants.json") == ""，makedirs("") 会抛异常；裸文件名跳过建目录。
+    d = os.path.dirname(path)
+    if d:
+        os.makedirs(d, exist_ok=True)
+
+
 def load_all(root="data"):
     recs = []
     for path in sorted(glob.glob(os.path.join(root, "**", "*.yaml"), recursive=True)):
         with open(path, encoding="utf-8") as fh:
-            recs.append(yaml.safe_load(fh))
+            rec = yaml.safe_load(fh)
+        if not isinstance(rec, dict):
+            print(f"WARN: 跳过空/非法 YAML: {path}")
+            continue
+        recs.append(rec)
     recs.sort(key=lambda r: r.get("中文名") or "")
     return recs
 
 
 def export_json(records, out="dist/plants.json"):
-    os.makedirs(os.path.dirname(out), exist_ok=True)
+    _ensure_dir(out)
     with open(out, "w", encoding="utf-8") as fh:
         json.dump(records, fh, ensure_ascii=False, indent=2)
     print(f"写出 {out}（{len(records)} 条）")
@@ -73,33 +84,35 @@ def _as_map(v):
 
 
 def export_sqlite(records, out="dist/plants.sqlite"):
-    os.makedirs(os.path.dirname(out), exist_ok=True)
+    _ensure_dir(out)
     if os.path.exists(out):
         os.remove(out)
     con = sqlite3.connect(out)
-    con.executescript(
-        """
-        CREATE TABLE plant (学名 TEXT PRIMARY KEY, 中文名 TEXT, 科 TEXT, 属 TEXT, 描述 TEXT);
-        CREATE TABLE synonym (学名 TEXT, 异名 TEXT);
-        CREATE TABLE common_name (学名 TEXT, 俗名 TEXT);
-        CREATE TABLE morphology (学名 TEXT, 器官 TEXT, 描述 TEXT);
-        """
-    )
-    for r in records:
-        xm = r.get("学名")
-        tax = _as_map(r.get("分类系统"))
-        con.execute(
-            "INSERT OR REPLACE INTO plant VALUES (?,?,?,?,?)",
-            (xm, r.get("中文名"), tax.get("科"), tax.get("属"), r.get("描述")),
+    try:
+        con.executescript(
+            """
+            CREATE TABLE plant (学名 TEXT PRIMARY KEY, 中文名 TEXT, 科 TEXT, 属 TEXT, 描述 TEXT);
+            CREATE TABLE synonym (学名 TEXT, 异名 TEXT);
+            CREATE TABLE common_name (学名 TEXT, 俗名 TEXT);
+            CREATE TABLE morphology (学名 TEXT, 器官 TEXT, 描述 TEXT);
+            """
         )
-        con.executemany("INSERT INTO synonym VALUES (?,?)", [(xm, s) for s in _as_list(r.get("异名"))])
-        con.executemany("INSERT INTO common_name VALUES (?,?)", [(xm, c) for c in _as_list(r.get("俗名"))])
-        con.executemany(
-            "INSERT INTO morphology VALUES (?,?,?)",
-            [(xm, k, v) for k, v in _as_map(r.get("形态特征")).items()],
-        )
-    con.commit()
-    con.close()
+        for r in records:
+            xm = r.get("学名")
+            tax = _as_map(r.get("分类系统"))
+            con.execute(
+                "INSERT OR REPLACE INTO plant VALUES (?,?,?,?,?)",
+                (xm, r.get("中文名"), tax.get("科"), tax.get("属"), r.get("描述")),
+            )
+            con.executemany("INSERT INTO synonym VALUES (?,?)", [(xm, s) for s in _as_list(r.get("异名"))])
+            con.executemany("INSERT INTO common_name VALUES (?,?)", [(xm, c) for c in _as_list(r.get("俗名"))])
+            con.executemany(
+                "INSERT INTO morphology VALUES (?,?,?)",
+                [(xm, k, v) for k, v in _as_map(r.get("形态特征")).items()],
+            )
+        con.commit()
+    finally:
+        con.close()
     print(f"写出 {out}")
     return out
 

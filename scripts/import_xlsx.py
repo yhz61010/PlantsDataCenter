@@ -19,10 +19,20 @@ def import_file(xlsx_path, out_root="data", dry_run=False):
     src = os.path.basename(xlsx_path)
     fam = family_dir(xlsx_path)
     written = []
+    seen = set()
     for sheet_name, rows in read_sheets(xlsx_path):
         rec = parse_species(rows, src, sheet_name)
         fname = (rec.get("中文名") or sheet_name) + ".yaml"
         out_path = os.path.join(out_root, fam, fname)
+        if out_path in seen:
+            # 同科内中文名重复：不静默覆盖，改写为带序号的文件名并告警。
+            stem, ext = os.path.splitext(fname)
+            n = 2
+            while os.path.join(out_root, fam, f"{stem}-{n}{ext}") in seen:
+                n += 1
+            out_path = os.path.join(out_root, fam, f"{stem}-{n}{ext}")
+            print(f"WARN: {src}/{sheet_name} 中文名重复，改写为 {out_path}（勿覆盖）")
+        seen.add(out_path)
         if dry_run:
             print(f"[dry-run] {out_path}")
             written.append(out_path)

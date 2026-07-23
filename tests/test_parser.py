@@ -115,5 +115,24 @@ class TestParser(unittest.TestCase):
         self.assertEqual(r["分类系统"]["界"], "Plantae-植物界(zhí wù jiè)")
         self.assertEqual(r["分类系统"]["目"], "Asterales-菊目(jú mù)")
 
+    def test_shukui_chinese_name_pinyin_stripped(self):
+        # 蜀葵：源数据把拼音写进了中文名（"蜀葵 (shǔ kuí)"），中文名应只留 "蜀葵"。
+        r = load("knowledge/JK-锦葵科.xlsx", "蜀葵")
+        self.assertEqual(r["中文名"], "蜀葵")
+
+    def test_pinyin_tail_stripped_but_chinese_alias_kept(self):
+        # 拼音括注剥离；含中文的括注（真别名注释）保留。
+        rows = [{"r": 1, "A": "中文名", "B": "蜀葵 (shǔ kuí)"}]
+        self.assertEqual(parse_species(rows, "x.xlsx", "蜀葵")["中文名"], "蜀葵")
+        rows = [{"r": 1, "A": "中文名", "B": "槐（别名国槐）"}]
+        self.assertEqual(parse_species(rows, "x.xlsx", "槐")["中文名"], "槐（别名国槐）")
+
+    def test_literal_none_list_normalized_to_placeholder(self):
+        # 源数据俗名/异名单元格字面写 "无" 时，规范化为标量占位，不留 ["无"]。
+        rows = [{"r": 1, "A": "俗名", "B": "无"}, {"r": 2, "A": "异名", "B": "无"}]
+        r = parse_species(rows, "x.xlsx", "某物种")
+        self.assertEqual(r["俗名"], "无")
+        self.assertEqual(r["异名"], "无")
+
 if __name__ == "__main__":
     unittest.main()
