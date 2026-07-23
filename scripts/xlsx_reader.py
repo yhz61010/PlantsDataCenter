@@ -52,13 +52,17 @@ def read_sheets(path):
             for row in sheet_data.findall(NS + "row"):
                 cells = {"r": int(row.get("r"))}
                 for c in row.findall(NS + "c"):
+                    col = col_letter(c.get("r"))
+                    if col not in ("A", "B", "C"):   # 只保留 A/B/C，忽略 D 列起的 DISPIMG 图片公式
+                        continue
                     v = c.find(NS + "v")
                     if v is None or v.text is None:
                         continue
                     val = strings[int(v.text)] if c.get("t") == "s" else v.text
                     if val != "":
-                        cells[col_letter(c.get("r"))] = val
+                        cells[col] = val
                 if len(cells) > 1:
                     rows.append(cells)
+            rows.sort(key=lambda r: r["r"])   # 保证按行号升序（不依赖文档顺序）
             result.append((name, rows))
     return result
