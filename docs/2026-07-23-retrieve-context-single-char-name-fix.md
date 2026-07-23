@@ -45,7 +45,9 @@ _BOUNDARY_CHARS = set(
     "、，,。.；;：:？?！!…（）()「」『』【】《》“”\"'‘’ \t\r\n"
 )
 # 紧跟在单字名之后、仍指代该植物的常见后缀，如“桃树/槐花/艾叶/桑果”。
-_NAME_SUFFIX_CHARS = set("树花叶果实子籽苗枝干根皮属科目")
+# 只保留植物部位/称谓；不要放 属/科/目——分类阶查询已由 taxonomy_terms / rank query 处理，
+# 若放进来会让“桃属有哪些”在“桃属”非真实 taxonomy 词时退化成硬锁单株“桃”。
+_NAME_SUFFIX_CHARS = set("树花叶果实子籽苗枝干根皮")
 ```
 
 ## 改动 2 · 新增两个辅助函数
@@ -98,12 +100,16 @@ def _exact_name_match(value, query):
     if value == q:
         return True
     if len(value) == 1:
-        return _mentions_single_char(value, q)
+        # 仅“单个中文字符”才走边界匹配；其他单字符值（如单个拉丁字母）保持“只认整串相等”。
+        if "一" <= value <= "鿿":
+            return _mentions_single_char(value, q)
+        return False
     return _norm(value) in _norm(q)
 ```
 
 多字名分支不变（仍子串匹配）；单字名从"仅整串相等"升级为"词边界点名"。该函数被
-`_record_mentioned`、`score_record` 的精确名加权、俗名/异名匹配共用，一处改动三处生效。
+`_record_mentioned`、`score_record` 的精确名加权、俗名/异名匹配共用，一处改动三处生效——
+故对单字中文字符的收窄同时保护了俗名/异名/学名路径（避免对非中文单字符做子串匹配）。
 
 ## 改动 4 · 新增回归测试（`tests/test_retrieve_context.py`）
 
@@ -140,7 +146,7 @@ def _rec(name, latin, **over):
             _rec("艾", "Artemisia argyi H.Lév. & Vaniot"),
             _rec("构", "Broussonetia papyrifera (L.) L'Hér. ex Vent."),
         ]
-        for q in ("桑拿房很热", "艾滋病防治", "地质构造分析"):
+        for q in ("桑拿房很热", "艾滋病", "地质构造分析"):
             self.assertEqual(retrieve(records, q), [], q)
 ```
 
@@ -155,26 +161,32 @@ from scripts.retrieve_context import retrieve
 recs = load_all('data')
 for q in ['槐的药用价值', '桃树怎么修剪', '莲的观赏价值', '桑的果实能吃吗']:
     print('FIX  ', q, '->', [h['record']['中文名'] for h in retrieve(recs, q, limit=3)])
-for q in ['艾滋病的防治', '桑拿房', '构造地质']:
-    print('NOISE', q, '->', [h['record']['中文名'] for h in retrieve(recs, q, limit=3)])
+# 只验证“不再硬锁”，故用与植物内容无重叠的词；不要用“艾滋病的防治”——
+# “防治”是 艾 记录里的真实内容词，属另一类“内容词噪声”，不在本方案范围内。
+for q in ['艾滋病', '桑拿房', '构造地质']:
+    print('LOCK?', q, '->', [h['record']['中文名'] for h in retrieve(recs, q, limit=3)])
 PY
 
-# ② 全量测试（应仍全绿，且新增 2 项：53 -> 55）
+# ② 全量测试（应仍全绿，且新增 2 项：54 -> 56）
 python3 -m unittest discover -s tests
 ```
 
 预期：
 
 - `FIX` 四条 Top1 分别为 槐 / 桃 / 莲 / 桑；
-- `NOISE` 三条不再把 艾/桑/构 锁到首位（理想为空或无关）；
-- 单测 53 → 55，全绿；
+- `LOCK?` 三条不再把 艾/桑/构 硬锁到候选集（应为空）；
+- 单测 54 → 56，全绿；
 - finding 1/3 不受影响（未动 `taxonomy_terms`、rank 逻辑、`FIELD_ORDER`）。
+
+> 范围说明（据 Codex 复审）：本方案只消除“单字名子串硬锁”，**不**处理“内容词噪声”
+> （如 `艾滋病的防治` 因 艾 记录含“防治”而命中）。后者若要过滤，需要额外的
+> “非植物/医学问题”识别，属独立话题，不在此方案内。
 
 ## 影响面
 
 - 仅改 `_exact_name_match` 及新增两个纯函数 + 两个常量；`retrieve/score_record/_record_mentioned`
   的调用签名不变。
-- 多字名、分类阶查询、元数据剔除等既有行为不变，现有 53 测试不受影响。
+- 多字名、分类阶查询、元数据剔除等既有行为不变，现有 54 测试不受影响。
 - 边界字符表可按需增补；如需 `莲蓬→莲` 这类"果实别称"也命中，可把 `蓬` 等加进
   `_NAME_SUFFIX_CHARS`（默认不加，优先保精确）。
 ```
