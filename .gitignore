@@ -1,7 +1,30 @@
 # 派生导出物，可由 export.py 重建
 dist/
+
 # Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+.venv/
+venv/
+
 # subagent-driven 执行台账（scratch）
 .superpowers/
+
+# Claude Code 本地设置（机器相关，不入库）
+.claude/settings.local.json
+
+# 操作系统 / 编辑器
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+
+# WPS / Excel 临时锁文件
+~$*.xlsx
