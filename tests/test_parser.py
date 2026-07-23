@@ -86,12 +86,21 @@ class TestParser(unittest.TestCase):
         self.assertIn("霓裳", r["功用价值"]["植物文化"])
         self.assertNotIn("霓裳", r["植物志"])
 
-    def test_jinzhonghua_chinese_note_not_synonym(self):
-        # 金钟花：异名段里混入中文说明（无 (synonym) 标记），不得当作异名，
-        # 应进 备注；真正的拉丁异名仍保留。
+    def test_jinzhonghua_chinese_note_not_synonym_and_image_caption(self):
+        # 金钟花：异名段里混入中文说明（无 (synonym) 标记），不得当作异名，应进 备注；
+        # 真正的拉丁异名仍保留；尾部“下图是…图片”是图片说明，不得进入植物志。
         r = load("knowledge/MX-木樨科.xlsx", "金钟花")
         self.assertEqual(r["异名"], ["Rangium viridissimum"])
         self.assertIn("区别", r.get("备注", ""))
+        self.assertEqual(r["植物志"], "暂无数据")
+        self.assertIn("髓部图片", r.get("备注", ""))
+
+    def test_lianqiao_comparison_table_not_dropped(self):
+        # 连翘：异名段内嵌入“连翘 vs 金钟花”对比表（B/C 同行），
+        # 其 C 值不得静默丢弃，应连同 B 标签进 备注。
+        r = load("knowledge/MX-木樨科.xlsx", "连翘")
+        self.assertIn("金钟花", r.get("备注", ""))
+        self.assertTrue(r["植物志"].startswith("1. 连翘"))   # 真正的植物志仍保留
 
 if __name__ == "__main__":
     unittest.main()

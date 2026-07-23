@@ -3,6 +3,7 @@ import re
 SECTIONS = ("分类系统", "物种保护", "分类信息", "形态特征", "生态习性", "功用价值")
 _SPLIT_RE = re.compile(r"[、,，]")
 _CJK = re.compile(r"[一-鿿]")   # 判断是否含中文（异名应为纯拉丁名）
+_IMG = re.compile(r"下图|上图|图片|如图|见图")   # 图片说明文字，不应进入植物志
 _SYN_RE = re.compile(r"[  ]*\(synonym\)\s*$")
 
 
@@ -65,7 +66,9 @@ def parse_species(rows, source_file, sheet_name):
 
         # A 为空：延续当前区块
         if section == "异名":
-            if B:
+            if B and C:
+                notes.append(_clean_key(B) + "：" + _clean_val(C))   # 异名段内的表格行（如对比表）→ 备注
+            elif B:
                 _add_syn(B)
             elif C:                                    # 异名后、首区块前的无标签段 = 描述
                 desc_lines.append(C.strip()); section = "描述"
@@ -84,6 +87,8 @@ def parse_species(rows, source_file, sheet_name):
             elif C:
                 if section == "分类系统" or last_key is None:
                     notes.append(C.strip())            # 分类阶值是原子的，脚注 → 备注
+                elif _IMG.search(C):
+                    notes.append(C.strip())            # 图片说明文字 → 备注，不污染植物志
                 elif in_flora:
                     flora.append(C.strip())            # 已在植物志块内，继续累积
                 elif prev_row is not None and rn > prev_row + 1:
