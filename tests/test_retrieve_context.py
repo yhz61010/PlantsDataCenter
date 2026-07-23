@@ -75,6 +75,18 @@ RECORDS = [
 ]
 
 
+def _rec(name, latin, **over):
+    base = {
+        "学名": latin, "中文名": name, "俗名": "无", "异名": "无",
+        "描述": "暂无数据", "分类系统": "暂无数据", "物种保护": "暂无数据",
+        "分类信息": "暂无数据", "形态特征": "暂无数据", "生态习性": "暂无数据",
+        "功用价值": "暂无数据", "植物志": "暂无数据",
+        "元数据": {"来源文件": "x.xlsx", "来源工作表": name},
+    }
+    base.update(over)
+    return base
+
+
 class TestRetrieveContext(unittest.TestCase):
     def test_extract_terms_generates_chinese_substrings(self):
         terms = extract_terms("臭椿有什么形态特征")
@@ -191,6 +203,64 @@ class TestRetrieveContext(unittest.TestCase):
         self.assertIn("请只根据下面资料回答问题", prompt)
         self.assertIn("臭椿", prompt)
         self.assertIn("功用价值", prompt)
+
+    def test_single_char_name_matched_in_compound_query(self):
+        # 回归防护：单字名物种在“X的…/X树…”式长句里被点名，应检索到，
+        # 且必须是靠“中文名点名加权”命中——故断言“中文名”进入 matched_fields，
+        # 并加一条含相同泛词（药用/价值）的干扰记录：若单字匹配没修好，牡丹会
+        # 靠内容词与 槐 并列/反超，两条断言都会失败，避免测试假通过。
+        records = [
+            _rec("槐", "Styphnolobium japonicum (L.) Schott",
+                 功用价值={"药用": "花蕾入药，清热"}),
+            _rec("牡丹", "Paeonia × suffruticosa Andrews",
+                 功用价值={"药用": "根皮入药，称丹皮", "观赏": "花大艳丽，价值高"}),
+        ]
+        for q in ("槐的药用价值", "槐树怎么修剪"):
+            hits = retrieve(records, q)
+            self.assertEqual([h["record"]["中文名"] for h in hits], ["槐"], q)
+            self.assertIn("中文名", hits[0]["matched_fields"])
+
+    def test_single_char_name_not_locked_by_unrelated_substring(self):
+        # finding 2 不回退：单字名恰是无关词子串时不得误锁。
+        records = [
+            _rec("桑", "Morus alba L."),
+            _rec("艾", "Artemisia argyi H.Lév. & Vaniot"),
+            _rec("构", "Broussonetia papyrifera (L.) L'Hér. ex Vent."),
+        ]
+        for q in ("桑拿房很热", "艾滋病", "地质构造分析"):
+            self.assertEqual(retrieve(records, q), [], q)
+
+    def test_single_char_name_matched_after_leading_verb(self):
+        # 自然问句常带引导动词（请问/帮我查/看看），单字名左邻是动词时也应命中。
+        records = [
+            _rec("槐", "Styphnolobium japonicum (L.) Schott",
+                 功用价值={"药用": "花蕾入药，清热"}),
+            _rec("桃", "Prunus persica (L.) Batsch",
+                 形态特征={"花": "先叶开放，粉红"}),
+        ]
+        cases = {"请问槐的药用价值": "槐", "帮我查桃树怎么修剪": "桃", "看看槐花": "槐"}
+        for q, expected in cases.items():
+            hits = retrieve(records, q)
+            self.assertEqual([h["record"]["中文名"] for h in hits], [expected], q)
+
+    def test_single_char_name_matched_with_plant_part_suffix(self):
+        # 常见“衍生词”后缀：艾草 / 荠菜 / 莲藕 / 桑葚 应命中对应单字名。
+        records = [
+            _rec("艾", "Artemisia argyi H.Lév. & Vaniot", 功用价值={"药用": "全草入药"}),
+            _rec("荠", "Capsella bursa-pastoris (L.) Medik."),
+            _rec("莲", "Nelumbo nucifera Gaertn."),
+            _rec("桑", "Morus alba L."),
+        ]
+        cases = {"艾草有什么用": "艾", "荠菜能吃吗": "荠", "莲藕怎么做": "莲", "桑葚甜吗": "桑"}
+        for q, expected in cases.items():
+            hits = retrieve(records, q)
+            self.assertEqual([h["record"]["中文名"] for h in hits], [expected], q)
+
+    def test_plant_part_suffix_does_not_falsely_lock(self):
+        # 后缀字出现在无关词里（前面不是单字名）时不得误锁。
+        records = [_rec("桑", "Morus alba L."), _rec("艾", "Artemisia argyi H.Lév. & Vaniot")]
+        for q in ("白菜炒肉", "花草茶很香", "藕断丝连"):
+            self.assertEqual(retrieve(records, q), [], q)
 
 
 if __name__ == "__main__":
