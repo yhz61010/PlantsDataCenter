@@ -48,7 +48,8 @@ _BOUNDARY_CHARS = set(
 # 紧跟在单字名之后、仍指代该植物的常见后缀，如“桃树/槐花/艾叶/桑果”。
 # 只保留植物部位/称谓；不要放 属/科/目——分类阶查询已由 taxonomy_terms / rank query 处理，
 # 若放进来会让“桃属有哪些”在“桃属”非真实 taxonomy 词时退化成硬锁单株“桃”。
-_NAME_SUFFIX_CHARS = set("树花叶果实子籽苗枝干根皮")
+# 末尾 草菜藕葚椹 针对现有单字名的常见问法：艾草 / 荠菜 / 莲藕(莲菜) / 桑葚 / 桑椹。
+_NAME_SUFFIX_CHARS = set("树花叶果实子籽苗枝干根皮草菜藕葚椹")
 ```
 
 ## 改动 2 · 新增两个辅助函数
@@ -160,6 +161,25 @@ def _rec(name, latin, **over):
         for q, expected in cases.items():
             hits = retrieve(records, q)
             self.assertEqual([h["record"]["中文名"] for h in hits], [expected], q)
+
+    def test_single_char_name_matched_with_plant_part_suffix(self):
+        # 常见“衍生词”后缀：艾草 / 荠菜 / 莲藕 / 桑葚 应命中对应单字名。
+        records = [
+            _rec("艾", "Artemisia argyi H.Lév. & Vaniot", 功用价值={"药用": "全草入药"}),
+            _rec("荠", "Capsella bursa-pastoris (L.) Medik."),
+            _rec("莲", "Nelumbo nucifera Gaertn."),
+            _rec("桑", "Morus alba L."),
+        ]
+        cases = {"艾草有什么用": "艾", "荠菜能吃吗": "荠", "莲藕怎么做": "莲", "桑葚甜吗": "桑"}
+        for q, expected in cases.items():
+            hits = retrieve(records, q)
+            self.assertEqual([h["record"]["中文名"] for h in hits], [expected], q)
+
+    def test_plant_part_suffix_does_not_falsely_lock(self):
+        # 后缀字出现在无关词里（前面不是单字名）时不得误锁。
+        records = [_rec("桑", "Morus alba L."), _rec("艾", "Artemisia argyi H.Lév. & Vaniot")]
+        for q in ("白菜炒肉", "花草茶很香", "藕断丝连"):
+            self.assertEqual(retrieve(records, q), [], q)
 ```
 
 ## 验证方法与预期
@@ -172,7 +192,8 @@ from scripts.export import load_all
 from scripts.retrieve_context import retrieve
 recs = load_all('data')
 for q in ['槐的药用价值', '桃树怎么修剪', '莲的观赏价值', '桑的果实能吃吗',
-          '请问槐的药用价值', '帮我查桃树怎么修剪']:   # 后两条验证问句引导动词左边界
+          '请问槐的药用价值', '帮我查桃树怎么修剪',   # 问句引导动词左边界
+          '艾草有什么用', '荠菜能吃吗', '莲藕怎么做', '桑葚甜吗']:   # 衍生词后缀
     print('FIX  ', q, '->', [h['record']['中文名'] for h in retrieve(recs, q, limit=3)])
 # 只验证“不再硬锁”，故用与植物内容无重叠的词；不要用“艾滋病的防治”——
 # “防治”是 艾 记录里的真实内容词，属另一类“内容词噪声”，不在本方案范围内。
@@ -180,15 +201,16 @@ for q in ['艾滋病', '桑拿房', '构造地质']:
     print('LOCK?', q, '->', [h['record']['中文名'] for h in retrieve(recs, q, limit=3)])
 PY
 
-# ② 全量测试（应仍全绿，且新增 3 项：54 -> 57）
+# ② 全量测试（应仍全绿，且新增 5 项：54 -> 59）
 python3 -m unittest discover -s tests
 ```
 
 预期：
 
-- `FIX` 前四条 Top1 分别为 槐 / 桃 / 莲 / 桑；后两条（带“请问/帮我查”）同样命中 槐 / 桃；
+- `FIX` 前四条 Top1 为 槐 / 桃 / 莲 / 桑；带“请问/帮我查”两条命中 槐 / 桃；带衍生词后缀四条
+  （艾草/荠菜/莲藕/桑葚）命中 艾 / 荠 / 莲 / 桑；
 - `LOCK?` 三条不再把 艾/桑/构 硬锁到候选集（应为空）；
-- 单测 54 → 57，全绿；
+- 单测 54 → 59，全绿；
 - finding 1/3 不受影响（未动 `taxonomy_terms`、rank 逻辑、`FIELD_ORDER`）。
 
 > 范围说明（据 Codex 复审）：
