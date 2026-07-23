@@ -97,10 +97,17 @@ class TestParser(unittest.TestCase):
 
     def test_lianqiao_comparison_table_not_dropped(self):
         # 连翘：异名段内嵌入“连翘 vs 金钟花”对比表（B/C 同行），
-        # 其 C 值不得静默丢弃，应连同 B 标签进 备注。
+        # 其 C 值不得静默丢弃，应连同 B 标签进 备注。断言真正被抢救的表格 C 值
+        # （旧代码会丢，故该断言对旧代码为假、对新代码为真）。
         r = load("knowledge/MX-木樨科.xlsx", "连翘")
-        self.assertIn("金钟花", r.get("备注", ""))
-        self.assertTrue(r["植物志"].startswith("1. 连翘"))   # 真正的植物志仍保留
+        self.assertIn("原生种", r.get("备注", ""))            # 表格 C 值被保留
+        self.assertIn("枝条中心是空的", r.get("备注", ""))     # 另一表格 C 值
+        self.assertTrue(r["植物志"].startswith("1. 连翘"))    # 真正的植物志仍保留
+
+    def test_shukui_stray_field_value_preserved(self):
+        # 蜀葵：异名段内一行“模式产地/原产四川”（B+C），C 值须保留进 备注（旧代码只留 B 标签）。
+        r = load("knowledge/JK-锦葵科.xlsx", "蜀葵")
+        self.assertIn("原产四川", r.get("备注", ""))
 
 if __name__ == "__main__":
     unittest.main()
