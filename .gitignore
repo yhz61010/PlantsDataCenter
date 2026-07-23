@@ -1,0 +1,7 @@
+# 派生导出物，可由 export.py 重建
+dist/
+# Python
+__pycache__/
+*.pyc
+# subagent-driven 执行台账（scratch）
+.superpowers/

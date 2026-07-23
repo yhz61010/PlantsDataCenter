@@ -1,0 +1,51 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## 仓库性质
+
+PlantsDataCenter 是一个**植物学参考数据集**，而非软件工程项目。仓库中没有源代码、构建系统、
+测试或 git 历史，只有 `knowledge/` 目录下的电子表格数据。这里的工作是数据整理：读取、校验、
+新增和修正植物记录。
+
+## 目录结构
+
+`knowledge/` 中每个 WPS/Excel 工作簿（`.xlsx`）对应一个**植物科**。文件名遵循
+`<拼音首字母>-<中文科名>.xlsx` 格式，前缀是中文科名的拼音首字母——例如
+`KM-苦木科.xlsx`（Simaroubaceae）、`ML-木兰科.xlsx`（Magnoliaceae）、
+`J-菊科.xlsx`（Asteraceae）。
+
+在一个工作簿内，**每个工作表对应一个物种**（工作表以中文物种名命名，如 `玉兰`、`二乔玉兰`）。
+包含照片的工作簿还会带一个名为 `WpsReserved_CellImgList` 的保留工作表——这是 WPS Office
+存放单元格内嵌图片的地方，不是物种记录，遍历物种时应跳过。文件体积较大（几十 MB）就是因为
+这些内嵌的 JPEG 图片。
+
+## 物种记录字段结构
+
+每个物种工作表是**两列的键/值表单**（一列写字段名，旁边一列写值），而不是常规的行列表格。
+从上到下的字段如下：
+
+- `学名` — 拉丁学名（二名法），如 `Ailanthus altissima (Mill.) Swingle`
+- `中文名` — 中文名称
+- `俗名` — 俗名/别名（多个，逗号分隔）
+- `异名` — 异名；每个拉丁名后面跟一个 ` (synonym)` 标记单元格
+- 一段自由文本描述
+- `分类系统` — 分类阶元：`界` `门` `纲` `目` `科` `属`。每个阶元的值格式为
+  `<拉丁名>-<中文>(<拼音>)`，如 `Sapindales-无患子目(wú huàn zǐ mù)`
+- `形态特征` — 形态描述，按器官分子键：`生活型` `株` `枝` `叶` `花` 等
+
+新增或修改记录时，要与这套字段集合、字段用词保持一致，并沿用分类行
+`拉丁名-中文(拼音)` 的格式。
+
+## 数据操作说明
+
+- 这些文件是 **WPS Office xlsx**（工作簿 XML 使用 `dbsheet` 命名空间，并包含
+  `xl/woinfos.xml`）。可用 Excel/WPS/LibreOffice 打开，但注意内嵌图片工作表是 WPS 专有的，
+  用其他工具可能无法完整往返转换。
+- 当前环境**未安装 `openpyxl`**，且文本内容无法通过普通 `cat` 读取。若不用电子表格软件查看，
+  可把 `.xlsx` 当作 zip 处理：
+  - 列出工作表/物种：`unzip -p "<文件>.xlsx" xl/workbook.xml | grep -o 'sheet name="[^"]*"'`
+  - 单元格文本存放在 `xl/sharedStrings.xml`（提取 `<t>…</t>` 的值）；单元格通过索引引用这些
+    字符串，因此需要把 `xl/worksheets/sheetN.xml` 中 `<c t="s"><v>` 的索引与该列表对应起来，
+    才能还原出每一行的内容。
+- 内容为中文（UTF-8）。用程序编辑时，请保留拼音声调符号，以及异名标记前的 `\xa0`（不间断空格）。
