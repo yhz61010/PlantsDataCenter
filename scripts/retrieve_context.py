@@ -74,6 +74,19 @@ STOP_TERMS = {
 QUESTION_MARKERS = ("什么", "哪些", "有哪", "哪个", "哪种", "属于")
 LIST_QUERY_MARKERS = ("哪些", "有哪", "有哪些", "列出", "名单", "列表")
 
+# 单字中文名“点名”判定用的边界字符：虚词、常见问句/请求引导动词、标点、空白
+#（非中文字符另行判定）。用于避免“桑拿→桑”式误锁，同时保住“桑的果实→桑”“桃树→桃”式真实点名。
+_BOUNDARY_CHARS = set(
+    "的是和与及或有无这那每各某本该其为在对把让从跟向到于也都又还就要会能可想"
+    "哪什怎如何吗呢吧啊么了地得着过并且但即"
+    "问查看找搜说讲"                       # 常见问句/请求引导动词：请问槐…/帮我查桃…/看看莲…
+    "、，,。.；;：:？?！!…（）()「」『』【】《》“”\"'‘’ \t\r\n"
+)
+# 紧跟在单字名之后、仍指代该植物的常见后缀，如“桃树/槐花/艾叶/桑果”。
+# 只放植物部位/衍生词；不要放 属/科/目（分类阶查询由 taxonomy_terms / rank query 处理）。
+# 末尾 草菜藕葚椹 针对现有单字名：艾草 / 荠菜 / 莲藕(莲菜) / 桑葚 / 桑椹。
+_NAME_SUFFIX_CHARS = set("树花叶果实子籽苗枝干根皮草菜藕葚椹")
+
 
 def _norm(s):
     return str(s).lower()
@@ -153,12 +166,40 @@ def interested_fields(query):
     return fields
 
 
+def _is_boundary(ch):
+    # 句首/句尾（None）与所有非中文字符（拉丁/数字/空白/标点）都算边界。
+    if ch is None:
+        return True
+    if not ("一" <= ch <= "鿿"):
+        return True
+    return ch in _BOUNDARY_CHARS
+
+
+def _mentions_single_char(name, query):
+    # 单字中文名需以“词边界”出现才算点名：左侧为边界，右侧为边界或指代该植物的后缀。
+    for i, ch in enumerate(query):
+        if ch != name:
+            continue
+        left = query[i - 1] if i > 0 else None
+        right = query[i + 1] if i + 1 < len(query) else None
+        if _is_boundary(left) and (_is_boundary(right) or right in _NAME_SUFFIX_CHARS):
+            return True
+    return False
+
+
 def _exact_name_match(value, query):
     if not value or _is_placeholder(value):
         return False
     value = str(value)
     q = query.strip()
-    return value == q or (len(value) > 1 and _norm(value) in _norm(q))
+    if value == q:
+        return True
+    if len(value) == 1:
+        # 仅“单个中文字符”才走边界匹配；其他单字符值（如单个拉丁字母）保持“只认整串相等”。
+        if "一" <= value <= "鿿":
+            return _mentions_single_char(value, q)
+        return False
+    return _norm(value) in _norm(q)
 
 
 def score_record(record, query, terms, rank_query=False):
