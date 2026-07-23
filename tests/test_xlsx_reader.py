@@ -32,5 +32,17 @@ class TestXlsxReader(unittest.TestCase):
                     self.assertIn(k, ("A", "B", "C"))     # 只保留 A/B/C
                     self.assertNotIn("DISPIMG", v)         # 图片公式不泄漏
 
+    def test_dispimg_in_c_column_filtered(self):
+        # MX-木樨科.xlsx 的“金钟花”把 DISPIMG 图片公式放在 C 列，
+        # 仅靠列过滤不够，必须按值前缀过滤。
+        sheets = read_sheets("knowledge/MX-木樨科.xlsx")
+        for name, rows in sheets:
+            if name != "金钟花":
+                continue
+            for row in rows:
+                for k, v in row.items():
+                    if k != "r":
+                        self.assertNotIn("DISPIMG", v)
+
 if __name__ == "__main__":
     unittest.main()
