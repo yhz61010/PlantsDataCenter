@@ -25,7 +25,8 @@ class TestImport(unittest.TestCase):
 
     def test_all_fields_present_with_placeholders(self):
         paths = import_file("knowledge/KM-苦木科.xlsx", out_root=self.tmp)
-        data = yaml.safe_load(open(paths[0], encoding="utf-8"))
+        with open(paths[0], encoding="utf-8") as fh:
+            data = yaml.safe_load(fh)
         self.assertEqual(data["功用价值"], "暂无数据")
         self.assertEqual(data["物种保护"], "暂无数据")
         self.assertEqual(
@@ -33,7 +34,8 @@ class TestImport(unittest.TestCase):
 
     def test_yaml_is_unicode_not_escaped(self):
         paths = import_file("knowledge/KM-苦木科.xlsx", out_root=self.tmp)
-        text = open(paths[0], encoding="utf-8").read()
+        with open(paths[0], encoding="utf-8") as fh:
+            text = fh.read()
         self.assertIn("臭椿", text)
         self.assertNotIn("\\u", text)
 

@@ -1,5 +1,9 @@
 import argparse
 import os
+import sys
+
+# 允许以 `python3 scripts/import_xlsx.py ...` 直接运行（把仓库根加入 sys.path）
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from scripts.xlsx_reader import read_sheets
 from scripts.parser import parse_species
