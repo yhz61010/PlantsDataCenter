@@ -62,5 +62,21 @@ class TestParser(unittest.TestCase):
         self.assertEqual(r["元数据"]["来源文件"], "KM-苦木科.xlsx")
         self.assertEqual(r["元数据"]["来源工作表"], "臭椿")
 
+    def test_zijing_continuation_and_stray_paragraph(self):
+        # 紫荆：功用价值.植物文化 是一首诗，续行（C-only）应拼进该子键而非植物志；
+        # 该物种无尾部植物志；行尾一段无标签 B-only 段落应进 备注（不丢弃）。
+        r = load("knowledge/D-豆科.xlsx", "紫荆")
+        self.assertIn("杜甫", r["功用价值"]["植物文化"])     # 诗尾署名并入子键
+        self.assertEqual(r["植物志"], "暂无数据")            # 诗未被误当植物志
+        self.assertIn("木本花卉", r.get("备注", ""))         # 游离段落被保留
+
+    def test_jishutiao_taxonomy_footnote_to_notes(self):
+        # 鸡树条：分类系统内（科与属之间）插入的脚注属原子分类阶之外，应进 备注，
+        # 不得污染分类阶值，也不得被当作植物志。
+        r = load("knowledge/JM-荚蒾科.xlsx", "鸡树条")
+        self.assertEqual(r["植物志"], "暂无数据")
+        self.assertIn("五福花科", r.get("备注", ""))
+        self.assertEqual(r["分类系统"]["科"], "Viburnaceae-荚蒾科(jiá mí kē)")
+
 if __name__ == "__main__":
     unittest.main()
