@@ -130,16 +130,24 @@ def _rec(name, latin, **over):
     return base
 ```
 
-在 `TestRetrieveContext` 内加两个用例：
+在 `TestRetrieveContext` 内新增以下 **5 个** 回归测试（勿删减）：
 
 ```python
     def test_single_char_name_matched_in_compound_query(self):
-        # 回归防护：单字名物种在“X的…/X树…”式长句里被点名，应检索到。
-        records = [_rec("槐", "Styphnolobium japonicum (L.) Schott",
-                        功用价值={"药用": "花蕾入药，清热"})]
+        # 回归防护：单字名物种在“X的…/X树…”式长句里被点名，应检索到，
+        # 且必须是靠“中文名点名加权”命中——故断言“中文名”进入 matched_fields，
+        # 并加一条含相同泛词（药用/价值）的干扰记录：若单字匹配没修好，牡丹会
+        # 靠内容词与 槐 并列/反超，两条断言都会失败，避免测试假通过。
+        records = [
+            _rec("槐", "Styphnolobium japonicum (L.) Schott",
+                 功用价值={"药用": "花蕾入药，清热"}),
+            _rec("牡丹", "Paeonia × suffruticosa Andrews",
+                 功用价值={"药用": "根皮入药，称丹皮", "观赏": "花大艳丽，价值高"}),
+        ]
         for q in ("槐的药用价值", "槐树怎么修剪"):
             hits = retrieve(records, q)
             self.assertEqual([h["record"]["中文名"] for h in hits], ["槐"], q)
+            self.assertIn("中文名", hits[0]["matched_fields"])
 
     def test_single_char_name_not_locked_by_unrelated_substring(self):
         # finding 2 不回退：单字名恰是无关词子串时不得误锁。
