@@ -2,6 +2,7 @@ import argparse
 import glob
 import json
 import os
+import sqlite3
 import sys
 
 # 允许以 `python3 scripts/export.py ...` 直接运行（把仓库根加入 sys.path）
@@ -63,9 +64,49 @@ def export_markdown(records, out_dir="dist/md"):
     return written
 
 
+def _as_list(v):
+    return v if isinstance(v, list) else []
+
+
+def _as_map(v):
+    return v if isinstance(v, dict) else {}
+
+
+def export_sqlite(records, out="dist/plants.sqlite"):
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    if os.path.exists(out):
+        os.remove(out)
+    con = sqlite3.connect(out)
+    con.executescript(
+        """
+        CREATE TABLE plant (学名 TEXT PRIMARY KEY, 中文名 TEXT, 科 TEXT, 属 TEXT, 描述 TEXT);
+        CREATE TABLE synonym (学名 TEXT, 异名 TEXT);
+        CREATE TABLE common_name (学名 TEXT, 俗名 TEXT);
+        CREATE TABLE morphology (学名 TEXT, 器官 TEXT, 描述 TEXT);
+        """
+    )
+    for r in records:
+        xm = r.get("学名")
+        tax = _as_map(r.get("分类系统"))
+        con.execute(
+            "INSERT OR REPLACE INTO plant VALUES (?,?,?,?,?)",
+            (xm, r.get("中文名"), tax.get("科"), tax.get("属"), r.get("描述")),
+        )
+        con.executemany("INSERT INTO synonym VALUES (?,?)", [(xm, s) for s in _as_list(r.get("异名"))])
+        con.executemany("INSERT INTO common_name VALUES (?,?)", [(xm, c) for c in _as_list(r.get("俗名"))])
+        con.executemany(
+            "INSERT INTO morphology VALUES (?,?,?)",
+            [(xm, k, v) for k, v in _as_map(r.get("形态特征")).items()],
+        )
+    con.commit()
+    con.close()
+    print(f"写出 {out}")
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser(description="从 data/ 导出 JSON/Markdown")
-    ap.add_argument("--only", default="json,md")
+    ap.add_argument("--only", default="json,md,sqlite")
     ap.add_argument("--root", default="data")
     ap.add_argument("--dist", default="dist")
     args = ap.parse_args()
@@ -75,6 +116,8 @@ def main():
         export_json(records, os.path.join(args.dist, "plants.json"))
     if "md" in only:
         export_markdown(records, os.path.join(args.dist, "md"))
+    if "sqlite" in only:
+        export_sqlite(records, os.path.join(args.dist, "plants.sqlite"))
 
 
 if __name__ == "__main__":
