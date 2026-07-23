@@ -24,7 +24,6 @@ FIELD_ORDER = (
     "生态习性",
     "功用价值",
     "植物志",
-    "元数据",
     "备注",
 )
 DEFAULT_CONTEXT_FIELDS = ("描述", "分类系统", "形态特征", "生态习性", "功用价值", "物种保护", "分类信息", "植物志")
@@ -85,9 +84,31 @@ def _is_placeholder(v):
     return v in PLACEHOLDERS
 
 
-def _rank_terms_from_chunk(chunk):
+def _rank_terms_from_chunk(chunk, rank_vocab=None):
     terms = set(re.findall(r"[\u4e00-\u9fff]{1,8}?[界门纲目科属](?!于)", chunk))
-    return {term for term in terms if not any(marker in term for marker in QUESTION_MARKERS)}
+    terms = {term for term in terms if not any(marker in term for marker in QUESTION_MARKERS)}
+    if rank_vocab is not None:
+        terms = {term for term in terms if term in rank_vocab}
+    return terms
+
+
+def taxonomy_terms(records):
+    terms = set()
+    for record in records:
+        taxonomy = record.get("分类系统")
+        if not isinstance(taxonomy, dict):
+            continue
+        for value in taxonomy.values():
+            if not value or _is_placeholder(value):
+                continue
+            text = str(value)
+            latin, sep, rest = text.partition("-")
+            if sep and latin:
+                terms.add(latin)
+            chinese = rest.split("(", 1)[0].strip() if rest else text.strip()
+            if chinese:
+                terms.add(chinese)
+    return terms
 
 
 def _flatten(v):
@@ -100,20 +121,23 @@ def _flatten(v):
     return str(v)
 
 
-def extract_terms(query):
+def extract_terms(query, rank_vocab=None):
     terms = set()
     for chunk in re.findall(r"[A-Za-z0-9×'().-]+|[\u4e00-\u9fff]+", query):
         if len(chunk) < 2:
             continue
         if re.fullmatch(r"[\u4e00-\u9fff]+", chunk):
-            rank_terms = _rank_terms_from_chunk(chunk)
+            rank_terms = _rank_terms_from_chunk(chunk, rank_vocab=rank_vocab)
             if rank_terms:
                 terms.update(rank_terms)
                 continue
             terms.add(_norm(chunk))
             for size in (2, 3, 4):
                 for i in range(0, len(chunk) - size + 1):
-                    terms.add(chunk[i : i + size])
+                    term = chunk[i : i + size]
+                    if rank_vocab is not None and re.search(r"[界门纲目科属]", term) and term not in rank_vocab:
+                        continue
+                    terms.add(term)
         else:
             terms.add(_norm(chunk))
     return {term for term in terms if term not in STOP_TERMS}
@@ -128,9 +152,16 @@ def interested_fields(query):
     return fields
 
 
-def score_record(record, query, terms):
+def _exact_name_match(value, query):
+    if not value or _is_placeholder(value):
+        return False
+    value = str(value)
+    q = query.strip()
+    return value == q or (len(value) > 1 and _norm(value) in _norm(q))
+
+
+def score_record(record, query, terms, rank_query=False):
     q = _norm(query)
-    rank_query = _has_rank_query(query)
     score = 0
     matched_terms = set()
     matched_fields = set()
@@ -148,7 +179,7 @@ def score_record(record, query, terms):
 
     for field in ("中文名", "学名"):
         value = record.get(field)
-        if not rank_query and value and _norm(value) in q:
+        if not rank_query and _exact_name_match(value, query):
             score += 300 if field == "中文名" else 180
             matched_terms.add(str(value))
             matched_fields.add(field)
@@ -157,7 +188,7 @@ def score_record(record, query, terms):
         value = record.get(field)
         values = value if isinstance(value, list) else [value]
         for item in values:
-            if not rank_query and item and not _is_placeholder(item) and _norm(item) in q:
+            if not rank_query and _exact_name_match(item, query):
                 score += 120
                 matched_terms.add(str(item))
                 matched_fields.add(field)
@@ -171,26 +202,27 @@ def score_record(record, query, terms):
 
 
 def _record_mentioned(record, query):
-    q = _norm(query)
     values = [record.get("中文名"), record.get("学名")]
     for field in ("俗名", "异名"):
         value = record.get(field)
         values.extend(value if isinstance(value, list) else [value])
-    return any(value and not _is_placeholder(value) and _norm(value) in q for value in values)
+    return any(_exact_name_match(value, query) for value in values)
 
 
-def _has_rank_query(query):
+def _has_rank_query(query, rank_vocab=None):
     return any(
-        _rank_terms_from_chunk(chunk)
+        _rank_terms_from_chunk(chunk, rank_vocab=rank_vocab)
         for chunk in re.findall(r"[\u4e00-\u9fff]+", query)
     )
 
 
 def retrieve(records, query, limit=5, min_score=1):
-    terms = extract_terms(query)
-    mentioned = [] if _has_rank_query(query) else [record for record in records if _record_mentioned(record, query)]
+    rank_vocab = taxonomy_terms(records)
+    rank_query = _has_rank_query(query, rank_vocab=rank_vocab)
+    terms = extract_terms(query, rank_vocab=rank_vocab)
+    mentioned = [] if rank_query else [record for record in records if _record_mentioned(record, query)]
     candidates = mentioned if mentioned else records
-    hits = [score_record(record, query, terms) for record in candidates]
+    hits = [score_record(record, query, terms, rank_query=rank_query) for record in candidates]
     hits = [hit for hit in hits if hit["score"] >= min_score]
     hits.sort(key=lambda h: (-h["score"], h["record"].get("中文名") or ""))
     return hits[:limit]

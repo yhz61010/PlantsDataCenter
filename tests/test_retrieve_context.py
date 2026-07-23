@@ -1,6 +1,6 @@
 import unittest
 
-from scripts.retrieve_context import extract_terms, format_prompt, interested_fields, retrieve
+from scripts.retrieve_context import extract_terms, format_prompt, interested_fields, retrieve, taxonomy_terms
 
 
 RECORDS = [
@@ -34,6 +34,36 @@ RECORDS = [
         "植物志": "暂无数据",
         "元数据": {"来源文件": "ML-木兰科.xlsx", "来源工作表": "玉兰"},
     },
+    {
+        "学名": "Ulmus pumila L.",
+        "中文名": "榆",
+        "俗名": "无",
+        "异名": "无",
+        "描述": "落叶乔木。",
+        "分类系统": {"科": "Ulmaceae-榆科(yú kē)", "属": "Ulmus-榆属(yú shǔ)"},
+        "形态特征": {"叶": "叶缘具锯齿"},
+        "生态习性": "暂无数据",
+        "功用价值": "暂无数据",
+        "物种保护": "暂无数据",
+        "分类信息": "暂无数据",
+        "植物志": "暂无数据",
+        "元数据": {"来源文件": "Y-榆科.xlsx", "来源工作表": "榆"},
+    },
+    {
+        "学名": "Artemisia argyi H. Lév. & Vaniot",
+        "中文名": "艾",
+        "俗名": "无",
+        "异名": "无",
+        "描述": "多年生草本。",
+        "分类系统": {"科": "Asteraceae-菊科(jú kē)", "属": "Artemisia-蒿属(hāo shǔ)"},
+        "形态特征": {"叶": "羽状深裂"},
+        "生态习性": "暂无数据",
+        "功用价值": {"经济价值": "全草入药"},
+        "物种保护": "暂无数据",
+        "分类信息": "暂无数据",
+        "植物志": "暂无数据",
+        "元数据": {"来源文件": "J-菊科.xlsx", "来源工作表": "艾"},
+    },
 ]
 
 
@@ -44,11 +74,19 @@ class TestRetrieveContext(unittest.TestCase):
         self.assertNotIn("形态", terms)
         self.assertNotIn("特征", terms)
 
+    def test_rank_terms_must_exist_in_taxonomy_vocab(self):
+        vocab = taxonomy_terms(RECORDS)
+        self.assertEqual(extract_terms("木兰科有哪些植物", rank_vocab=vocab), {"木兰科"})
+        self.assertNotIn("项目", extract_terms("项目里的观赏树", rank_vocab=vocab))
+        self.assertNotIn("门学科", extract_terms("这门学科怎么分类", rank_vocab=vocab))
+        self.assertNotIn("臭椿的科", extract_terms("臭椿的科学分类", rank_vocab=vocab))
+
     def test_retrieve_prioritizes_exact_chinese_name(self):
         hits = retrieve(RECORDS, "臭椿有什么形态特征和用途")
         self.assertGreaterEqual(len(hits), 1)
         self.assertEqual(hits[0]["record"]["中文名"], "臭椿")
         self.assertIn("中文名", hits[0]["matched_fields"])
+        self.assertNotIn("元数据", hits[0]["matched_fields"])
 
     def test_retrieve_matches_taxonomy_question(self):
         hits = retrieve(RECORDS, "木兰科有哪些植物")
@@ -96,6 +134,16 @@ class TestRetrieveContext(unittest.TestCase):
         ]
         hits = retrieve(records, "玉兰属于什么科")
         self.assertEqual([hit["record"]["中文名"] for hit in hits], ["玉兰"])
+
+    def test_common_words_do_not_become_rank_queries(self):
+        self.assertCountEqual([hit["record"]["中文名"] for hit in retrieve(RECORDS, "项目里的观赏树")], ["臭椿", "玉兰"])
+        self.assertEqual([hit["record"]["中文名"] for hit in retrieve(RECORDS, "臭椿的科学分类")], ["臭椿"])
+
+    def test_single_character_names_do_not_hard_lock_substrings(self):
+        self.assertEqual(retrieve(RECORDS, "艾滋病"), [])
+        self.assertEqual(retrieve(RECORDS, "桑拿"), [])
+        self.assertEqual(retrieve(RECORDS, "构造"), [])
+        self.assertEqual([hit["record"]["中文名"] for hit in retrieve(RECORDS, "艾")], ["艾"])
 
     def test_interested_fields_detects_question_intent(self):
         fields = interested_fields("臭椿有什么形态特征和用途")
