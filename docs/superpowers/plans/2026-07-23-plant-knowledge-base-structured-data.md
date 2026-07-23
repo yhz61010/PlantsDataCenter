@@ -11,7 +11,7 @@
 - 仅用 Python 3.11 stdlib + 系统预装 `PyYAML 6.0`；**不得** `pip install` 任何包。
 - 所有源码放 `scripts/`，测试放 `tests/`，数据源放 `data/`，派生物放 `dist/`（git 忽略）。
 - YAML 写出统一用 `yaml.safe_dump(data, allow_unicode=True, sort_keys=False, default_flow_style=False, width=4096)`——中文不转义、字段顺序稳定、长行不折断。
-- 遍历工作表时**跳过** `WpsReserved_CellImgList`；只用 A/B/C 列，忽略 D 列 `DISPIMG` 图片公式。
+- 遍历工作表时**跳过** `WpsReserved_CellImgList`；只用 A/B/C 列；**忽略任意列中以 `=DISPIMG(` 开头的图片公式值**（这类公式既可能在 D 列，也可能落在 C 列）。
 - `sharedStrings.xml` 按 `<si>` **合并其内所有 `<t>` run** 为一个字符串。
 - 清洗：子键去尾部 `：`/`:`，值去尾部 `；`/`;` 与首尾空白；异名去尾部 `\xa0(synonym)` / ` (synonym)`。保留拼音声调符号。
 - **固定字段与顺序**（每个 YAML 必须全含）：`学名 中文名 俗名 异名 描述 分类系统 物种保护 分类信息 形态特征 生态习性 功用价值 植物志 元数据`。
@@ -132,6 +132,31 @@ class TestXlsxReader(unittest.TestCase):
         self.assertEqual(rows[17]["C"], "Simaroubaceae-苦木科(kǔ mù kē)")
         self.assertEqual(rows[4]["B"], "Toxicodendron altissimum\xa0(synonym)")
 
+    def test_image_sheet_skipped_and_no_dispimg_leak(self):
+        # ML-木兰科.xlsx 含内嵌图片：应跳过 WpsReserved_CellImgList，
+        # 且 D 列起的 DISPIMG 图片公式不得进入行网格。
+        sheets = read_sheets("knowledge/ML-木兰科.xlsx")
+        self.assertEqual([n for n, _ in sheets], ["玉兰", "二乔玉兰"])
+        for _, rows in sheets:
+            for row in rows:
+                for k, v in row.items():
+                    if k == "r":
+                        continue
+                    self.assertIn(k, ("A", "B", "C"))     # 只保留 A/B/C
+                    self.assertNotIn("DISPIMG", v)         # 图片公式不泄漏
+
+    def test_dispimg_in_c_column_filtered(self):
+        # MX-木樨科.xlsx 的“金钟花”把 DISPIMG 图片公式放在 C 列，
+        # 仅靠列过滤不够，必须按值前缀过滤。
+        sheets = read_sheets("knowledge/MX-木樨科.xlsx")
+        for name, rows in sheets:
+            if name != "金钟花":
+                continue
+            for row in rows:
+                for k, v in row.items():
+                    if k != "r":
+                        self.assertNotIn("DISPIMG", v)
+
 if __name__ == "__main__":
     unittest.main()
 ```
@@ -198,14 +223,19 @@ def read_sheets(path):
             for row in sheet_data.findall(NS + "row"):
                 cells = {"r": int(row.get("r"))}
                 for c in row.findall(NS + "c"):
+                    col = col_letter(c.get("r"))
+                    if col not in ("A", "B", "C"):   # 只保留 A/B/C，忽略 D 列起的图片公式
+                        continue
                     v = c.find(NS + "v")
                     if v is None or v.text is None:
                         continue
                     val = strings[int(v.text)] if c.get("t") == "s" else v.text
-                    if val != "":
-                        cells[col_letter(c.get("r"))] = val
+                    if val == "" or val.startswith("=DISPIMG("):   # 忽略空值与 DISPIMG 图片公式（可能落在 C 列）
+                        continue
+                    cells[col] = val
                 if len(cells) > 1:
                     rows.append(cells)
+            rows.sort(key=lambda r: r["r"])   # 保证按行号升序（不依赖文档顺序）
             result.append((name, rows))
     return result
 ```
@@ -213,7 +243,7 @@ def read_sheets(path):
 - [ ] **Step 4: 跑测试确认通过**
 
 Run: `python3 -m unittest tests.test_xlsx_reader -v`
-Expected: PASS（2 tests）
+Expected: PASS（4 tests）
 
 - [ ] **Step 5: Commit**
 
@@ -301,6 +331,53 @@ class TestParser(unittest.TestCase):
         self.assertEqual(r["元数据"]["来源文件"], "KM-苦木科.xlsx")
         self.assertEqual(r["元数据"]["来源工作表"], "臭椿")
 
+    def test_zijing_continuation_and_stray_paragraph(self):
+        # 紫荆：功用价值.植物文化 是一首诗，续行（C-only）应拼进该子键而非植物志；
+        # 该物种无尾部植物志；行尾一段无标签 B-only 段落应进 备注（不丢弃）。
+        r = load("knowledge/D-豆科.xlsx", "紫荆")
+        self.assertIn("杜甫", r["功用价值"]["植物文化"])     # 诗尾署名并入子键
+        self.assertEqual(r["植物志"], "暂无数据")            # 诗未被误当植物志
+        self.assertIn("木本花卉", r.get("备注", ""))         # 游离段落被保留
+
+    def test_jishutiao_taxonomy_footnote_to_notes(self):
+        # 鸡树条：分类系统内（科与属之间）插入的脚注属原子分类阶之外，应进 备注，
+        # 不得污染分类阶值，也不得被当作植物志。
+        r = load("knowledge/JM-荚蒾科.xlsx", "鸡树条")
+        self.assertEqual(r["植物志"], "暂无数据")
+        self.assertIn("五福花科", r.get("备注", ""))
+        self.assertEqual(r["分类系统"]["科"], "Viburnaceae-荚蒾科(jiá mí kē)")
+
+    def test_yulan_contiguous_poem_stays_in_subkey(self):
+        # 玉兰：植物文化《题玉兰》的诗行与子键“紧接无空行”，应续接进 植物文化，
+        # 不得因“其后无 B 行”而漏进植物志（空行间隔才是植物志信号）。
+        r = load("knowledge/ML-木兰科.xlsx", "玉兰")
+        self.assertIn("沈周", r["功用价值"]["植物文化"])
+        self.assertIn("霓裳", r["功用价值"]["植物文化"])
+        self.assertNotIn("霓裳", r["植物志"])
+
+    def test_jinzhonghua_chinese_note_not_synonym_and_image_caption(self):
+        # 金钟花：异名段里混入中文说明（无 (synonym) 标记），不得当作异名，应进 备注；
+        # 真正的拉丁异名仍保留；尾部“下图是…图片”是图片说明，不得进入植物志。
+        r = load("knowledge/MX-木樨科.xlsx", "金钟花")
+        self.assertEqual(r["异名"], ["Rangium viridissimum"])
+        self.assertIn("区别", r.get("备注", ""))
+        self.assertEqual(r["植物志"], "暂无数据")
+        self.assertIn("髓部图片", r.get("备注", ""))
+
+    def test_lianqiao_comparison_table_not_dropped(self):
+        # 连翘：异名段内嵌入“连翘 vs 金钟花”对比表（B/C 同行），
+        # 其 C 值不得静默丢弃，应连同 B 标签进 备注。断言真正被抢救的表格 C 值
+        # （旧代码会丢，故该断言对旧代码为假、对新代码为真）。
+        r = load("knowledge/MX-木樨科.xlsx", "连翘")
+        self.assertIn("原生种", r.get("备注", ""))            # 表格 C 值被保留
+        self.assertIn("枝条中心是空的", r.get("备注", ""))     # 另一表格 C 值
+        self.assertTrue(r["植物志"].startswith("1. 连翘"))    # 真正的植物志仍保留
+
+    def test_shukui_stray_field_value_preserved(self):
+        # 蜀葵：异名段内一行“模式产地/原产四川”（B+C），C 值须保留进 备注（旧代码只留 B 标签）。
+        r = load("knowledge/JK-锦葵科.xlsx", "蜀葵")
+        self.assertIn("原产四川", r.get("备注", ""))
+
 if __name__ == "__main__":
     unittest.main()
 ```
@@ -317,6 +394,8 @@ import re
 
 SECTIONS = ("分类系统", "物种保护", "分类信息", "形态特征", "生态习性", "功用价值")
 _SPLIT_RE = re.compile(r"[、,，]")
+_CJK = re.compile(r"[一-鿿]")   # 判断是否含中文（异名应为纯拉丁名）
+_IMG = re.compile(r"下图|上图|图片|如图|见图")   # 图片说明文字，不应进入植物志
 _SYN_RE = re.compile(r"[  ]*\(synonym\)\s*$")
 
 
@@ -333,63 +412,93 @@ def _clean_syn(s):
 
 
 def parse_species(rows, source_file, sheet_name):
-    name = xueming = desc = None
-    common, synonyms, flora, notes = [], [], [], []
+    name = xueming = None
+    desc_lines, common, synonyms, flora, notes = [], [], [], [], []
     sections = {s: {} for s in SECTIONS}   # 各区块的有序子键映射
     section = None                          # 当前所在区块
-    seen_section = False                    # 是否已进入过任一区块（用于区分 描述 vs 植物志）
+    last_key = None                         # 当前区块最近写入的子键（用于续行拼接）
+    in_flora = False                        # 是否已进入尾部“植物志”文本块
+    prev_row = None                         # 上一有内容行的行号（用于探测空行间隔）
+
+    def _add_syn(val):
+        # 异名应为纯拉丁名；含中文的行是说明性文字 → 备注，不当作异名。
+        if _CJK.search(val):
+            notes.append(val)
+        else:
+            synonyms.append(_clean_syn(val))
 
     for row in rows:
+        rn = row["r"]
         A = row.get("A")
         B = row.get("B")
         C = row.get("C")
 
         if A == "学名":
-            section = "学名"; xueming = (B or "").strip(); continue
+            section = "学名"; xueming = (B or "").strip(); prev_row = rn; continue
         if A == "中文名":
-            section = "中文名"; name = (B or "").strip(); continue
+            section = "中文名"; name = (B or "").strip(); prev_row = rn; continue
         if A == "俗名":
             section = "俗名"
             if B:
                 common = [p.strip() for p in _SPLIT_RE.split(B) if p.strip()]
-            continue
+            prev_row = rn; continue
         if A == "异名":
             section = "异名"
             if B:
-                synonyms.append(_clean_syn(B))
-            continue
+                _add_syn(B)
+            prev_row = rn; continue
         if A in SECTIONS:
-            section = A; seen_section = True
+            section = A; last_key = None; in_flora = False
             if B and C:
-                sections[A][_clean_key(B)] = _clean_val(C)
-            continue
+                last_key = _clean_key(B)
+                sections[A][last_key] = _clean_val(C)
+            elif B or C:
+                notes.append((B or "") + (C or ""))   # 区块标题行的异常内容
+            prev_row = rn; continue
 
         # A 为空：延续当前区块
         if section == "异名":
-            if B:
-                synonyms.append(_clean_syn(B))
-            elif C:
-                if not seen_section:          # 异名后、首区块前的无标签段 = 描述
-                    desc = C.strip(); section = "描述"
-                else:
-                    flora.append(C.strip())
+            if B and C:
+                notes.append(_clean_key(B) + "：" + _clean_val(C))   # 异名段内的表格行（如对比表）→ 备注
+            elif B:
+                _add_syn(B)
+            elif C:                                    # 异名后、首区块前的无标签段 = 描述
+                desc_lines.append(C.strip()); section = "描述"
         elif section == "描述":
             if C:
-                desc = (desc or "") + C.strip()
+                desc_lines.append(C.strip())
+            elif B:
+                notes.append(B)                        # 描述段里的 B-only：兜底
         elif section in SECTIONS:
             if B and C:
-                sections[section][_clean_key(B)] = _clean_val(C)
-            elif C:                           # 区块后无标签文本 = 植物志
-                flora.append(C.strip())
+                last_key = _clean_key(B)
+                sections[section][last_key] = _clean_val(C)
+                in_flora = False
+            elif B:
+                notes.append(B)                        # B 有值 C 为空 → 兜底，不丢弃
+            elif C:
+                if section == "分类系统" or last_key is None:
+                    notes.append(C.strip())            # 分类阶值是原子的，脚注 → 备注
+                elif _IMG.search(C):
+                    notes.append(C.strip())            # 图片说明文字 → 备注，不污染植物志
+                elif in_flora:
+                    flora.append(C.strip())            # 已在植物志块内，继续累积
+                elif prev_row is not None and rn > prev_row + 1:
+                    in_flora = True                    # 空行间隔后的无标签文本 = 植物志起始
+                    flora.append(C.strip())
+                else:
+                    sections[section][last_key] += "\n" + C.strip()   # 紧接上一行 → 续接子键
         elif B or C:
-            notes.append((B or "") + (C or ""))   # 兜底，不丢弃
+            notes.append((B or "") + (C or ""))        # 兜底，不丢弃
+
+        prev_row = rn
 
     out = {}
     out["学名"] = xueming or "暂无数据"
     out["中文名"] = name or sheet_name
     out["俗名"] = common if common else "无"
     out["异名"] = synonyms if synonyms else "无"
-    out["描述"] = desc if desc else "暂无数据"
+    out["描述"] = "\n".join(desc_lines) if desc_lines else "暂无数据"
     for sec in SECTIONS:
         out[sec] = sections[sec] if sections[sec] else "暂无数据"
     out["植物志"] = "\n".join(flora) if flora else "暂无数据"
@@ -403,7 +512,7 @@ def parse_species(rows, source_file, sheet_name):
 - [ ] **Step 4: 跑测试确认通过**
 
 Run: `python3 -m unittest tests.test_parser -v`
-Expected: PASS（7 tests）
+Expected: PASS（13 tests）
 
 - [ ] **Step 5: Commit**
 
