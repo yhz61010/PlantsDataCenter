@@ -78,5 +78,20 @@ class TestParser(unittest.TestCase):
         self.assertIn("五福花科", r.get("备注", ""))
         self.assertEqual(r["分类系统"]["科"], "Viburnaceae-荚蒾科(jiá mí kē)")
 
+    def test_yulan_contiguous_poem_stays_in_subkey(self):
+        # 玉兰：植物文化《题玉兰》的诗行与子键“紧接无空行”，应续接进 植物文化，
+        # 不得因“其后无 B 行”而漏进植物志（空行间隔才是植物志信号）。
+        r = load("knowledge/ML-木兰科.xlsx", "玉兰")
+        self.assertIn("沈周", r["功用价值"]["植物文化"])
+        self.assertIn("霓裳", r["功用价值"]["植物文化"])
+        self.assertNotIn("霓裳", r["植物志"])
+
+    def test_jinzhonghua_chinese_note_not_synonym(self):
+        # 金钟花：异名段里混入中文说明（无 (synonym) 标记），不得当作异名，
+        # 应进 备注；真正的拉丁异名仍保留。
+        r = load("knowledge/MX-木樨科.xlsx", "金钟花")
+        self.assertEqual(r["异名"], ["Rangium viridissimum"])
+        self.assertIn("区别", r.get("备注", ""))
+
 if __name__ == "__main__":
     unittest.main()
