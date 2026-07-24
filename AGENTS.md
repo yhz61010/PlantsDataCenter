@@ -2,13 +2,13 @@
 
 ## 项目结构与模块组织
 
-PlantsDataCenter 是植物知识结构化数据仓库。`data/` 是唯一真相源，当前包含 44 科、107 个 `*.yaml` 物种文件，路径为 `data/<中文科名>/<中文物种名>.yaml`。`knowledge/` 保存 44 个 WPS/Excel 原始工作簿，已由 Git LFS 管理，只在重导或核对原文时使用。`scripts/` 是 Python 数据管线，CLI 入口为 `import_xlsx.py`、`validate.py`、`export.py`、`retrieve_context.py`，复用模块为 `xlsx_reader.py`、`parser.py`、`yaml_io.py`。`schema/plant.schema.md` 定义字段规范，`tests/` 放 `unittest`，`docs/superpowers/specs/` 与 `docs/superpowers/plans/` 放设计和实现计划。`dist/` 是可重建导出物，已忽略，不作为提交对象。
+PlantsDataCenter 是植物知识结构化数据仓库。`data/` 是唯一真相源，当前包含 44 科、158 个 `*.yaml` 物种文件，路径为 `data/<中文科名>/<中文物种名>.yaml`。`knowledge/` 保存 44 个 WPS/Excel 物种原始工作簿，`00-基础知识.xlsx` 是基础知识参考表；这些 Excel 文件已由 Git LFS 管理，只在重导、补充来源或核对原文时使用。`scripts/` 是 Python 数据管线，CLI 入口为 `import_xlsx.py`、`validate.py`、`export.py`、`retrieve_context.py`，复用模块为 `xlsx_reader.py`、`parser.py`、`yaml_io.py`。`schema/plant.schema.md` 定义字段规范，`tests/` 放 `unittest`，`docs/superpowers/specs/` 与 `docs/superpowers/plans/` 放设计和实现计划。`dist/` 是可重建导出物，已忽略，不作为提交对象。
 
 ## Build, Test, and Development Commands
 
 所有命令从仓库根目录运行：
 
-- `git lfs install && git lfs pull --include="knowledge/*.xlsx"`：新 clone 后下载 Excel 实体文件；若仍是指针文件，补跑 `git lfs fetch --include="knowledge/*.xlsx" && git lfs checkout`。
+- `git lfs install && git lfs pull --include="knowledge/*.xlsx,00-基础知识.xlsx"`：新 clone 后下载 Excel 实体文件；若仍是指针文件，补跑同范围 `git lfs fetch` 后执行 `git lfs checkout`。
 - `python3 scripts/import_xlsx.py knowledge/*.xlsx`：从 xlsx 重建 `data/**/*.yaml`；覆盖同名记录，但不删除旧文件。
 - `python3 scripts/validate.py`：校验全部 YAML 记录。
 - `python3 scripts/export.py`：生成 `dist/plants.json`、`dist/md/*.md`、`dist/plants.sqlite`。
