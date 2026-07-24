@@ -98,6 +98,47 @@ file knowledge/KM-苦木科.xlsx
 file 00-基础知识.xlsx
 ```
 
+如果只想先下载仓库主体文件（`data/`、`scripts/`、文档等），暂时不下载体积较大的植物知识 Excel，
+可以在 clone 时跳过 Git LFS 自动下载：
+
+```bash
+GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/yhz61010/PlantsDataCenter.git
+cd PlantsDataCenter
+```
+
+这样 Excel 文件会先保留为 LFS 指针，占用很小；`validate.py`、`export.py`、`retrieve_context.py`
+仍可直接使用 `data/` 下的 YAML。以后需要重新导入或核对原始 Excel 时，再运行：
+
+```bash
+git lfs pull --include="knowledge/*.xlsx,00-基础知识.xlsx"
+```
+
+维护者新增、修改或删除 Excel 后，也要通过 Git LFS 提交指针和对象：
+
+```bash
+# 修改已有 Excel 后：重新暂存该文件，Git LFS 会写入新的对象
+git add knowledge/XX-某科.xlsx
+
+# 新增 knowledge/ 下的物种工作簿：已匹配 knowledge/*.xlsx LFS 规则
+git add knowledge/XX-新科.xlsx
+
+# 新增其它位置的 Excel：先添加明确 LFS 规则，再暂存文件
+git lfs track "path/to/file.xlsx"
+git add .gitattributes path/to/file.xlsx
+
+# 删除 Excel：用 git rm 记录删除
+git rm knowledge/XX-某科.xlsx
+```
+
+提交前用下面命令确认 Excel 处于 LFS 管理状态：
+
+```bash
+git lfs status
+git diff --cached --stat
+```
+
+确认暂存范围正确后再 `git commit` 和 `git push`。推送时 Git LFS 会自动上传新增或修改后的大文件对象。
+
 ## 快速开始
 
 所有脚本自带 `sys.path` 引导，可从仓库根直接运行（无需 `cd` 进 `scripts/` 或设置 `PYTHONPATH`）。
