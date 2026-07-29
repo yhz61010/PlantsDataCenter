@@ -13,10 +13,10 @@
 
 ```
 PlantsDataCenter/
-├── 00-基础知识.xlsx   # 基础知识参考表（Git LFS 管理，不作为常规物种导入入口）
-├── knowledge/          # 原始 WPS xlsx（每科一个工作簿，内嵌照片），导入后退役、仅作历史来源
-├── data/               # ★ 唯一真相源：每物种一个 YAML，data/<中文科名>/<中文物种名>.yaml
-├── dist/               # 派生导出物（.gitignore，可随时由 export.py 重建）
+├── data/               # 唯一真相源：每物种一个 YAML，data/<中文科名>/<中文物种名>.yaml
+├── knowledge/          # Git LFS 管理的原始 WPS xlsx；每科一个工作簿，内嵌照片
+├── 00-基础知识.xlsx     # Git LFS 管理的基础知识参考表；不参与常规物种导入
+├── dist/               # 派生导出物（被 .gitignore 忽略，可由 export.py 重建）
 │   ├── plants.json
 │   ├── plants.sqlite
 │   └── md/<物种>.md
@@ -24,7 +24,11 @@ PlantsDataCenter/
 ├── schema/             # 字段规范（人读的权威定义）
 ├── tests/              # 单元测试（python3 -m unittest）
 ├── docs/               # 设计文档与实现计划（superpowers 产物）
-└── CLAUDE.md           # 面向 AI 协作者的项目说明
+├── .claude/            # Claude Code 命令与共享记忆文件
+├── AGENTS.md           # 面向 Codex/自动化协作者的仓库指南
+├── CLAUDE.md           # 面向 Claude Code 的项目说明
+├── .gitattributes      # Git LFS 跟踪规则
+└── .gitignore          # 忽略 dist/、缓存等本地生成物
 ```
 
 ## 数据模型
@@ -118,6 +122,9 @@ git lfs pull --include="knowledge/*.xlsx,00-基础知识.xlsx"
 ```bash
 # 修改已有 Excel 后：重新暂存该文件，Git LFS 会写入新的对象
 git add knowledge/XX-某科.xlsx
+
+# 修改基础知识参考表后：它也由 Git LFS 管理，但不参与物种导入
+git add 00-基础知识.xlsx
 
 # 新增 knowledge/ 下的物种工作簿：已匹配 knowledge/*.xlsx LFS 规则
 git add knowledge/XX-新科.xlsx
@@ -220,6 +227,9 @@ python3 scripts/retrieve_context.py "臭椿有什么用途" --fields 分类系�
 
 Excel 原始数据在 `knowledge/`，文件名须遵循 `<拼音首字母>-<中文科名>.xlsx`（如 `KM-苦木科.xlsx`）——
 科目录名就是文件名去掉拼音前缀的部分。改动 xlsx 后按下面重跑三步：**导入 → 校验 → 重建导出**。
+
+根目录的 `00-基础知识.xlsx` 是基础知识参考表，不是“一个科对应一个工作簿”的物种数据源。
+修改它后只需要按 Git LFS 流程 `git add 00-基础知识.xlsx` 并提交；不要用 `import_xlsx.py` 导入它。
 
 **A. 新增一个科（放入一个新 xlsx）**
 
