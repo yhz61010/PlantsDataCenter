@@ -45,7 +45,7 @@ MAP_SECTIONS = ("物种保护", "分类信息", "形态特征", "生态习性", 
 
 
 def to_markdown(rec):
-    fm = {k: rec[k] for k in ("学名", "中文名", "俗名", "异名", "分类系统") if k in rec}
+    fm = {k: rec[k] for k in ("学名", "中文名", "是否发现", "俗名", "异名", "分类系统") if k in rec}
     lines = ["---", dump_species(fm).rstrip(), "---", "", f"# {rec.get('中文名','')}", ""]
     desc = rec.get("描述")
     if desc and desc != "暂无数据":
@@ -91,7 +91,7 @@ def export_sqlite(records, out="dist/plants.sqlite"):
     try:
         con.executescript(
             """
-            CREATE TABLE plant (学名 TEXT PRIMARY KEY, 中文名 TEXT, 科 TEXT, 属 TEXT, 描述 TEXT);
+            CREATE TABLE plant (学名 TEXT PRIMARY KEY, 中文名 TEXT, 是否发现 TEXT, 科 TEXT, 属 TEXT, 描述 TEXT);
             CREATE TABLE synonym (学名 TEXT, 异名 TEXT);
             CREATE TABLE common_name (学名 TEXT, 俗名 TEXT);
             CREATE TABLE morphology (学名 TEXT, 器官 TEXT, 描述 TEXT);
@@ -101,8 +101,8 @@ def export_sqlite(records, out="dist/plants.sqlite"):
             xm = r.get("学名")
             tax = _as_map(r.get("分类系统"))
             con.execute(
-                "INSERT OR REPLACE INTO plant VALUES (?,?,?,?,?)",
-                (xm, r.get("中文名"), tax.get("科"), tax.get("属"), r.get("描述")),
+                "INSERT OR REPLACE INTO plant VALUES (?,?,?,?,?,?)",
+                (xm, r.get("中文名"), r.get("是否发现"), tax.get("科"), tax.get("属"), r.get("描述")),
             )
             con.executemany("INSERT INTO synonym VALUES (?,?)", [(xm, s) for s in _as_list(r.get("异名"))])
             con.executemany("INSERT INTO common_name VALUES (?,?)", [(xm, c) for c in _as_list(r.get("俗名"))])

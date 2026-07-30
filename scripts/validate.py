@@ -11,6 +11,7 @@ import yaml
 RANKS = ("界", "门", "纲", "目", "科", "属")
 REQUIRED_FIELDS = ("学名", "中文名", "俗名", "异名", "描述", "分类系统", "物种保护",
                    "分类信息", "形态特征", "生态习性", "功用价值", "植物志", "元数据")
+FOUND_VALUES = ("是", "否")
 PLACEHOLDERS = ("无", "暂无数据")
 # 分类阶：拉丁名-中文，拼音可选（个别物种源数据缺拼音）
 _TAX_RE = re.compile(r"^[A-Z][A-Za-z ]+-[^()]+(\(.+\))?$")
@@ -52,6 +53,10 @@ def validate_record(rec, path):
         v = rec.get(field)
         if not (isinstance(v, list) or v == "无"):
             errs.append(f"{path}: {field} 应为列表或 '无'")
+
+    found = rec.get("是否发现")
+    if found is not None and found not in FOUND_VALUES:
+        errs.append(f"{path}: 是否发现 应为 '是' 或 '否'")
 
     name = rec.get("中文名")
     stem = os.path.splitext(os.path.basename(path))[0]

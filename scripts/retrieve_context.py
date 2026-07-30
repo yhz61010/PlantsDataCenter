@@ -14,6 +14,7 @@ PLACEHOLDERS = {"", "无", "暂无数据", None}
 FIELD_ORDER = (
     "学名",
     "中文名",
+    "是否发现",
     "俗名",
     "异名",
     "描述",
@@ -26,8 +27,9 @@ FIELD_ORDER = (
     "植物志",
     "备注",
 )
-DEFAULT_CONTEXT_FIELDS = ("描述", "分类系统", "形态特征", "生态习性", "功用价值", "物种保护", "分类信息", "植物志")
+DEFAULT_CONTEXT_FIELDS = ("是否发现", "描述", "分类系统", "形态特征", "生态习性", "功用价值", "物种保护", "分类信息", "植物志")
 FIELD_HINTS = {
+    "是否发现": ("是否发现", "发现", "大连发现", "未发现", "没发现"),
     "俗名": ("俗名", "别名"),
     "异名": ("异名", "synonym"),
     "分类系统": ("分类", "科", "属", "拉丁", "学名"),
@@ -44,6 +46,7 @@ FIELD_WEIGHTS = {
     "学名": 16,
     "异名": 12,
     "分类系统": 10,
+    "是否发现": 8,
     "描述": 6,
     "形态特征": 5,
     "生态习性": 5,
@@ -73,6 +76,8 @@ STOP_TERMS = {
 }
 QUESTION_MARKERS = ("什么", "哪些", "有哪", "哪个", "哪种", "属于")
 LIST_QUERY_MARKERS = ("哪些", "有哪", "有哪些", "列出", "名单", "列表")
+NOT_FOUND_QUERY_MARKERS = ("未发现", "没发现", "没有发现", "并未发现", "未在大连发现", "没在大连发现")
+FOUND_QUERY_MARKERS = ("已发现", "发现过", "在大连发现")
 
 # 单字中文名“点名”判定用的边界字符：虚词、常见问句/请求引导动词、标点、空白
 #（非中文字符另行判定）。用于避免“桑拿→桑”式误锁，同时保住“桑的果实→桑”“桃树→桃”式真实点名。
@@ -216,8 +221,18 @@ def score_record(record, query, terms, rank_query=False):
         for term in terms:
             if term in text:
                 score += weight * min(len(term), 8)
-                matched_terms.add(term)
-                matched_fields.add(field)
+            matched_terms.add(term)
+            matched_fields.add(field)
+
+    found = record.get("是否发现")
+    if found == "否" and any(marker in query for marker in NOT_FOUND_QUERY_MARKERS):
+        score += FIELD_WEIGHTS["是否发现"] * 4
+        matched_terms.add("未发现")
+        matched_fields.add("是否发现")
+    elif found == "是" and any(marker in query for marker in FOUND_QUERY_MARKERS):
+        score += FIELD_WEIGHTS["是否发现"] * 4
+        matched_terms.add("已发现")
+        matched_fields.add("是否发现")
 
     for field in ("中文名", "学名"):
         value = record.get(field)
@@ -262,6 +277,10 @@ def _is_list_query(query):
     return any(marker in query for marker in LIST_QUERY_MARKERS)
 
 
+def _is_not_found_query(query):
+    return any(marker in query for marker in NOT_FOUND_QUERY_MARKERS)
+
+
 def default_limit(records, query):
     rank_vocab = taxonomy_terms(records)
     if _has_rank_query(query, rank_vocab=rank_vocab) and _is_list_query(query):
@@ -275,6 +294,8 @@ def retrieve(records, query, limit=5, min_score=1):
     terms = extract_terms(query, rank_vocab=rank_vocab)
     mentioned = [] if rank_query else [record for record in records if _record_mentioned(record, query)]
     candidates = mentioned if mentioned else records
+    if _is_not_found_query(query):
+        candidates = [record for record in candidates if record.get("是否发现") == "否"]
     hits = [score_record(record, query, terms, rank_query=rank_query) for record in candidates]
     hits = [hit for hit in hits if hit["score"] >= min_score]
     hits.sort(key=lambda h: (-h["score"], h["record"].get("中文名") or ""))

@@ -41,6 +41,7 @@ def _clean_rank(section, rank, val):
 
 def parse_species(rows, source_file, sheet_name):
     name = xueming = None
+    found = None
     desc_lines, common, synonyms, flora, notes = [], [], [], [], []
     sections = {s: {} for s in SECTIONS}   # 各区块的有序子键映射
     section = None                          # 当前所在区块
@@ -65,6 +66,8 @@ def parse_species(rows, source_file, sheet_name):
             section = "学名"; xueming = (B or "").strip(); prev_row = rn; continue
         if A == "中文名":
             section = "中文名"; name = _clean_name(B or ""); prev_row = rn; continue
+        if A == "是否发现":
+            section = "是否发现"; found = _clean_val(B or ""); prev_row = rn; continue
         if A == "俗名":
             section = "俗名"
             if B:
@@ -124,6 +127,8 @@ def parse_species(rows, source_file, sheet_name):
     out = {}
     out["学名"] = xueming or "暂无数据"
     out["中文名"] = name or sheet_name
+    if found:
+        out["是否发现"] = found
     out["俗名"] = common if common and common != ["无"] else "无"
     out["异名"] = synonyms if synonyms and synonyms != ["无"] else "无"
     out["描述"] = "\n".join(desc_lines) if desc_lines else "暂无数据"

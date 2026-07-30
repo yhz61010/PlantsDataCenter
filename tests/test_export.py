@@ -42,12 +42,13 @@ class TestExport(unittest.TestCase):
 
     def test_markdown_has_frontmatter_body_and_skips_placeholders(self):
         rec = {"学名": "Ailanthus altissima (Mill.) Swingle", "中文名": "臭椿",
-               "描述": "落叶乔木。", "分类系统": {"科": "Simaroubaceae-苦木科(kǔ mù kē)"},
+               "是否发现": "否", "描述": "落叶乔木。", "分类系统": {"科": "Simaroubaceae-苦木科(kǔ mù kē)"},
                "形态特征": {"叶": "羽状复叶"}, "功用价值": "暂无数据",
                "植物志": "20. 臭椿……"}
         md = to_markdown(rec)
         self.assertTrue(md.startswith("---\n"))
         self.assertIn("学名:", md)
+        self.assertIn("是否发现: 否", md)
         self.assertIn("# 臭椿", md)
         self.assertIn("## 形态特征", md)
         self.assertIn("羽状复叶", md)

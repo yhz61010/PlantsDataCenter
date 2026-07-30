@@ -22,6 +22,17 @@ class TestParser(unittest.TestCase):
             ["学名","中文名","俗名","异名","描述","分类系统","物种保护",
              "分类信息","形态特征","生态习性","功用价值","植物志","元数据"],
         )
+        self.assertNotIn("是否发现", r)
+
+    def test_optional_found_field_when_present(self):
+        rows = [
+            {"r": 1, "A": "学名", "B": "Sorbaria sorbifolia (L.) A. Braun"},
+            {"r": 2, "A": "中文名", "B": "珍珠梅"},
+            {"r": 3, "A": "是否发现", "B": "否"},
+        ]
+        r = parse_species(rows, "x.xlsx", "珍珠梅")
+        self.assertEqual(list(r.keys())[:3], ["学名", "中文名", "是否发现"])
+        self.assertEqual(r["是否发现"], "否")
 
     def test_km_taxonomy_and_morphology(self):
         r = load("knowledge/KM-苦木科.xlsx", "臭椿")
