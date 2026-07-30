@@ -76,6 +76,16 @@ class TestValidate(unittest.TestCase):
         errs = validate_record(bad, "data/苦木科/臭椿.yaml")
         self.assertTrue(any("俗名" in e for e in errs))
 
+    def test_optional_found_field(self):
+        ok = dict(GOOD)
+        ok["是否发现"] = "否"
+        self.assertEqual(validate_record(ok, "data/苦木科/臭椿.yaml"), [])
+
+        bad = dict(GOOD)
+        bad["是否发现"] = "暂无数据"
+        errs = validate_record(bad, "data/苦木科/臭椿.yaml")
+        self.assertTrue(any("是否发现" in e for e in errs))
+
     def test_filename_must_match_chinese_name(self):
         errs = validate_record(GOOD, "data/苦木科/错误名.yaml")
         self.assertTrue(any("文件名" in e for e in errs))

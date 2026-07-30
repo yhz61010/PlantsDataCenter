@@ -262,6 +262,18 @@ class TestRetrieveContext(unittest.TestCase):
         for q in ("白菜炒肉", "花草茶很香", "藕断丝连"):
             self.assertEqual(retrieve(records, q), [], q)
 
+    def test_optional_found_field_matches_not_found_query(self):
+        records = [
+            _rec("珍珠梅", "Sorbaria sorbifolia (L.) A. Braun", 是否发现="否"),
+            _rec("臭椿", "Ailanthus altissima (Mill.) Swingle", 描述="在大连发现的行道树。"),
+        ]
+        hits = retrieve(records, "哪些植物未在大连发现？")
+        self.assertEqual([h["record"]["中文名"] for h in hits], ["珍珠梅"])
+        self.assertIn("是否发现", hits[0]["matched_fields"])
+
+        context = format_context(hits, "哪些植物未在大连发现？")
+        self.assertIn("### 是否发现\n否", context)
+
 
 if __name__ == "__main__":
     unittest.main()
