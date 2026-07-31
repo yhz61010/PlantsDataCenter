@@ -274,6 +274,19 @@ class TestRetrieveContext(unittest.TestCase):
         context = format_context(hits, "哪些植物未在大连发现？")
         self.assertIn("### 是否发现\n否", context)
 
+    def test_matched_fields_only_lists_actually_matched_fields(self):
+        # matched_fields 只应包含真正命中查询词的字段，不能把记录里所有有内容的字段都算进去。
+        records = [_rec("臭椿", "Ailanthus altissima (Mill.) Swingle",
+                        描述="落叶乔木",
+                        形态特征={"叶": "羽状复叶"},
+                        生态习性={"分布": "华北"})]
+        hits = retrieve(records, "臭椿")           # “臭椿”只出现在中文名，不在描述/形态/生态
+        self.assertEqual(len(hits), 1)
+        mf = set(hits[0]["matched_fields"])
+        self.assertIn("中文名", mf)
+        for unrelated in ("描述", "形态特征", "生态习性"):
+            self.assertNotIn(unrelated, mf)        # 未命中该词的有内容字段不得出现
+
 
 if __name__ == "__main__":
     unittest.main()
