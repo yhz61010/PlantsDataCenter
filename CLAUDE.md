@@ -87,13 +87,13 @@ xlsx 中的物种记录抽取为逐物种的 YAML，并可再导出为多种格�
     `学名`/`中文名` 须为真实值、分类阶格式为 `拉丁名-中文(拼音)`（拼音可选，`学名` 允许杂交 `×`）。
     空/非映射 YAML 报错而非崩溃。
     有问题时逐条打印并以非 0 退出。
-  - `export.py` — 把 `data/` 导出为 `dist/plants.json`、`dist/md/*.md`、`dist/plants.sqlite`；
-    占位区块不渲染进 Markdown 正文、不入库；空 YAML 跳过并告警。
+  - `export.py` — 把 `data/` 导出为 `dist/plants.json`、`dist/plants.md`、`dist/md/*.md`、
+    `dist/plants.sqlite`；`plants.md` 含全量字段，逐物种 Markdown 跳过占位区块；空 YAML 跳过并告警。
   - `retrieve_context.py "<问题>"` — 从 `data/` 检索与问题相关的物种记录，输出 AI 问答可用的
     Markdown 上下文；`--prompt` 输出完整 grounded prompt，`--json` 输出结构化命中，`--fields` 可限制
     输出字段，`--limit` 可限制显示条数。分类列举查询（如“蔷薇科植物有哪些？”）默认返回全部命中；
     显式限量时会同时显示总命中数和显示记录数。
-- **测试**：`python3 -m unittest discover -s tests`（当前 62 项，无 pytest）。
+- **测试**：`python3 -m unittest discover -s tests`（当前 63 项，无 pytest）。
 - **典型工作流**：改 `data/*.yaml` → `validate.py`（把关）→ `export.py`（重建 `dist/`）。日常几乎只用这
   两个；AI 问答前用 `retrieve_context.py` 生成上下文；`import_xlsx.py` 仅在从 xlsx 重建真相源时用；
   三个模块是幕后被 CLI 调用的，不单独运行。
