@@ -9,12 +9,13 @@
 - **44 科 · 114 物种**
 - **一个运行时依赖**：Python 3.11+ + PyYAML（无需 `openpyxl`）
 - **单向管线**：`knowledge/*.xlsx`（物种原始表）→ `data/**/*.yaml`（真相源）→ `dist/*`（派生物）
+- **可重建数据层**：日常以 `data/` 为准；必要时可从 `knowledge/*.xlsx` 重新导入，重建对应 YAML。
 
 ## 目录结构
 
 ```
 PlantsDataCenter/
-├── data/               # 唯一真相源：每物种一个 YAML，data/<中文科名>/<中文物种名>.yaml
+├── data/               # 日常真相源：每物种一个 YAML；data/<中文科名>/<中文物种名>.yaml；必要时可由 knowledge/*.xlsx 重建
 ├── knowledge/          # Git LFS 管理的原始 WPS xlsx；每科一个工作簿，内嵌照片
 ├── 00-基础知识.xlsx     # Git LFS 管理的基础知识参考表；不参与常规物种导入
 ├── dist/               # 派生导出物（被 .gitignore 忽略，可由 export.py 重建）
