@@ -95,7 +95,7 @@ xlsx 中的物种记录抽取为逐物种的 YAML，并可再导出为多种格�
     Markdown 上下文；`--prompt` 输出完整 grounded prompt，`--json` 输出结构化命中，`--fields` 可限制
     输出字段，`--limit` 可限制显示条数。分类列举查询（如“蔷薇科植物有哪些？”）默认返回全部命中；
     显式限量时会同时显示总命中数和显示记录数。
-- **测试**：`python3 -m unittest discover -s tests`（当前 64 项，无 pytest）。
+- **测试**：`python3 -m unittest discover -s tests`（当前 65 项，无 pytest）。
 - **典型工作流**：改 `data/*.yaml` → `validate.py`（把关）→ `export.py`（重建 `dist/`）。日常几乎只用这
   两个；AI 问答前用 `retrieve_context.py` 生成上下文；`import_xlsx.py` 仅在从 xlsx 重建真相源时用；
   三个模块是幕后被 CLI 调用的，不单独运行。
