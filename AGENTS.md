@@ -11,7 +11,7 @@ PlantsDataCenter 是植物知识结构化数据仓库。`data/` 是唯一真相�
 - `git lfs install && git lfs pull --include="knowledge/*.xlsx,00-基础知识.xlsx"`：新 clone 后下载 Excel 实体文件；若仍是指针文件，补跑同范围 `git lfs fetch` 后执行 `git lfs checkout`。
 - `python3 scripts/import_xlsx.py knowledge/*.xlsx`：从 xlsx 重建 `data/**/*.yaml`；覆盖同名记录，但不删除旧文件。
 - `python3 scripts/validate.py`：校验全部 YAML 记录。
-- `python3 scripts/export.py`：生成 `dist/plants.json`、`dist/plants.md`、`dist/md/*.md`、`dist/plants.sqlite`；`plants.md` 是保留所有字段的全量单文件 Markdown，`dist/md/*.md` 是逐物种阅读版。
+- `python3 scripts/export.py`：生成 `dist/YYYYMMDD-plants.json`、`dist/YYYYMMDD-plants.md`、`dist/md/*.md`、`dist/YYYYMMDD-plants.sqlite`；`YYYYMMDD` 为运行当天日期，`YYYYMMDD-plants.md` 是保留所有字段的全量单文件 Markdown，`dist/md/*.md` 是逐物种阅读版。
 - `python3 scripts/export.py --only json,md`：只导出 JSON 和逐物种 Markdown；`--only fullmd` 只导出全量单文件 Markdown。
 - `python3 scripts/retrieve_context.py "臭椿有什么用途" --prompt`：为 AI 问答生成 grounded context；`--json` 供自动化集成，`--fields 分类系统,功用价值` 可限制上下文字段。
 - `python3 -m unittest discover -s tests`：运行单元测试。

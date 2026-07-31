@@ -20,9 +20,9 @@ PlantsDataCenter/
 ├── knowledge/          # Git LFS 管理的原始 WPS xlsx；每科一个工作簿，内嵌照片
 ├── 00-基础知识.xlsx     # Git LFS 管理的基础知识参考表；不参与常规物种导入
 ├── dist/               # 派生导出物（被 .gitignore 忽略，可由 export.py 重建）
-│   ├── plants.json
-│   ├── plants.md
-│   ├── plants.sqlite
+│   ├── YYYYMMDD-plants.json
+│   ├── YYYYMMDD-plants.md
+│   ├── YYYYMMDD-plants.sqlite
 │   └── md/<物种>.md
 ├── scripts/            # Python 数据管线（4 个 CLI + 3 个复用模块）
 ├── schema/             # 字段规范（人读的权威定义）
@@ -164,6 +164,7 @@ python3 scripts/import_xlsx.py knowledge/*.xlsx
 python3 scripts/validate.py
 
 # 导出 JSON / 全量 Markdown / 逐物种 Markdown / SQLite 到 dist/
+# 汇总文件会加运行当天日期前缀，如 20260731-plants.json
 python3 scripts/export.py                 # 全部
 python3 scripts/export.py --only json,md  # 仅 JSON + 逐物种 Markdown
 python3 scripts/export.py --only fullmd   # 仅全量单文件 Markdown
@@ -187,7 +188,7 @@ python3 scripts/retrieve_context.py "臭椿有什么形态特征和用途" --pro
 |------|---------|------|
 | `import_xlsx.py` | **一次性/偶尔**：需要从 `knowledge/*.xlsx` 重新生成或核对 `data/` 真相源时。日常不用（日常直接编辑 `data/*.yaml`）。 | 解析 xlsx 写出 `data/**/*.yaml`；同科中文名重复不静默覆盖，改带序号文件名并告警 |
 | `validate.py`    | **每次改完 `data/` 之后**：把关字段与格式（适合接 CI / pre-commit）。 | 校验 13 个必填字段齐全、可选 `是否发现` 取值、占位放行、`学名`/`中文名` 为真实值、分类阶格式合规；空/非映射 YAML 报错而非崩溃 |
-| `export.py`      | **对外发布 / 供程序或 AI 消费时**：把真相源导出为多种格式。 | 生成 `dist/plants.json`、`dist/plants.md`、`dist/md/*.md`、`dist/plants.sqlite`；`plants.md` 是单文件全量数据，保留所有字段；`dist/md/*.md` 是逐物种阅读版，会跳过占位区块 |
+| `export.py`      | **对外发布 / 供程序或 AI 消费时**：把真相源导出为多种格式。 | 生成 `dist/YYYYMMDD-plants.json`、`dist/YYYYMMDD-plants.md`、`dist/md/*.md`、`dist/YYYYMMDD-plants.sqlite`；`YYYYMMDD-plants.md` 是单文件全量数据，保留所有字段；`dist/md/*.md` 是逐物种阅读版，会跳过占位区块 |
 | `retrieve_context.py` | **AI 问答前**：从 `data/` 检索与问题相关的物种资料。 | 输出 Markdown 上下文；`--prompt` 输出可直接发给 AI 的完整提示词；`--json` 输出结构化命中；`--limit` 控制显示条数 |
 
 **典型工作流**：改 `data/*.yaml` → `validate.py`（把关）→ `export.py`（重建 `dist/`）。AI 问答时用 `retrieve_context.py` 生成 grounded context；`import_xlsx.py` 只在从 xlsx 重来时才用。

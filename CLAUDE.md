@@ -89,8 +89,8 @@ xlsx 中的物种记录抽取为逐物种的 YAML，并可再导出为多种格�
     `学名`/`中文名` 须为真实值、分类阶格式为 `拉丁名-中文(拼音)`（拼音可选，`学名` 允许杂交 `×`）。
     空/非映射 YAML 报错而非崩溃。
     有问题时逐条打印并以非 0 退出。
-  - `export.py` — 把 `data/` 导出为 `dist/plants.json`、`dist/plants.md`、`dist/md/*.md`、
-    `dist/plants.sqlite`；`plants.md` 含全量字段，逐物种 Markdown 跳过占位区块；空 YAML 跳过并告警。
+  - `export.py` — 把 `data/` 导出为 `dist/YYYYMMDD-plants.json`、`dist/YYYYMMDD-plants.md`、`dist/md/*.md`、
+    `dist/YYYYMMDD-plants.sqlite`；`YYYYMMDD` 为运行当天日期，全量 Markdown 含所有字段，逐物种 Markdown 跳过占位区块；空 YAML 跳过并告警。
   - `retrieve_context.py "<问题>"` — 从 `data/` 检索与问题相关的物种记录，输出 AI 问答可用的
     Markdown 上下文；`--prompt` 输出完整 grounded prompt，`--json` 输出结构化命中，`--fields` 可限制
     输出字段，`--limit` 可限制显示条数。分类列举查询（如“蔷薇科植物有哪些？”）默认返回全部命中；
