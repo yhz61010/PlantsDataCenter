@@ -1,5 +1,6 @@
 import json, os, shutil, tempfile, unittest
-from scripts.export import load_all, export_json, export_full_markdown, to_markdown
+from datetime import date
+from scripts.export import dated_dist_path, dated_filename, load_all, export_json, export_full_markdown, to_markdown
 
 class TestExport(unittest.TestCase):
     def setUp(self):
@@ -29,6 +30,11 @@ class TestExport(unittest.TestCase):
             self.assertTrue(os.path.exists(os.path.join(self.tmp, out)))
         finally:
             os.chdir(cwd)
+
+    def test_dated_dist_paths(self):
+        today = date(2026, 7, 31)
+        self.assertEqual(dated_filename("plants.json", today=today), "20260731-plants.json")
+        self.assertEqual(dated_dist_path("dist", "plants.md", today=today), os.path.join("dist", "20260731-plants.md"))
 
     def test_export_json_valid_and_unicode(self):
         recs = load_all("data")

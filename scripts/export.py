@@ -1,4 +1,5 @@
 import argparse
+import datetime as _dt
 import glob
 import json
 import os
@@ -20,6 +21,15 @@ def _ensure_dir(path):
         os.makedirs(d, exist_ok=True)
 
 
+def dated_filename(filename, today=None):
+    day = today or _dt.date.today()
+    return f"{day:%Y%m%d}-{filename}"
+
+
+def dated_dist_path(dist, filename, today=None):
+    return os.path.join(dist, dated_filename(filename, today=today))
+
+
 def load_all(root="data"):
     recs = []
     for path in sorted(glob.glob(os.path.join(root, "**", "*.yaml"), recursive=True)):
@@ -33,7 +43,8 @@ def load_all(root="data"):
     return recs
 
 
-def export_json(records, out="dist/plants.json"):
+def export_json(records, out=None):
+    out = out or dated_dist_path("dist", "plants.json")
     _ensure_dir(out)
     with open(out, "w", encoding="utf-8") as fh:
         json.dump(records, fh, ensure_ascii=False, indent=2)
@@ -111,7 +122,8 @@ def _record_fields(rec):
             yield field, value
 
 
-def export_full_markdown(records, out="dist/plants.md"):
+def export_full_markdown(records, out=None):
+    out = out or dated_dist_path("dist", "plants.md")
     _ensure_dir(out)
     lines = ["# PlantsDataCenter 全量物种数据", "", f"共 {len(records)} 条记录。", ""]
     for idx, rec in enumerate(records, 1):
@@ -132,7 +144,8 @@ def _as_map(v):
     return v if isinstance(v, dict) else {}
 
 
-def export_sqlite(records, out="dist/plants.sqlite"):
+def export_sqlite(records, out=None):
+    out = out or dated_dist_path("dist", "plants.sqlite")
     _ensure_dir(out)
     if os.path.exists(out):
         os.remove(out)
@@ -175,13 +188,13 @@ def main():
     only = set(args.only.split(","))
     records = load_all(args.root)
     if "json" in only:
-        export_json(records, os.path.join(args.dist, "plants.json"))
+        export_json(records, dated_dist_path(args.dist, "plants.json"))
     if "md" in only:
         export_markdown(records, os.path.join(args.dist, "md"))
     if "fullmd" in only:
-        export_full_markdown(records, os.path.join(args.dist, "plants.md"))
+        export_full_markdown(records, dated_dist_path(args.dist, "plants.md"))
     if "sqlite" in only:
-        export_sqlite(records, os.path.join(args.dist, "plants.sqlite"))
+        export_sqlite(records, dated_dist_path(args.dist, "plants.sqlite"))
 
 
 if __name__ == "__main__":
