@@ -6,7 +6,7 @@
 本知识库主体记录的是在**大连**实际遇到、观察或整理过的植物，不代表完整的区域植物志名录。
 少量为物种对比与学习而收录、但尚未在大连发现过的植物，会用可选字段 `是否发现: 否` 标记。
 
-- **44 科 · 114 物种，其中大连已发现 113 物种**
+- **45 科 · 115 物种，其中大连已发现 114 物种**
 - **一个运行时依赖**：Python 3.11+ + PyYAML（无需 `openpyxl`）
 - **单向管线**：`knowledge/*.xlsx`（物种原始表）→ `data/**/*.yaml`（真相源）→ `dist/*`（派生物）
 - **可重建数据层**：日常以 `data/` 为准；必要时可从 `knowledge/*.xlsx` 重新导入，重建对应 YAML。
@@ -15,7 +15,7 @@
 
 ```
 PlantsDataCenter/
-├── data/               # 日常真相源：每物种一个 YAML；data/<中文科名>/<中文物种名>.yaml；必要时可由 knowledge/*.xlsx 重建
+├── data/               # 日常真相源：每物种一个 YAML；data/<拼音首字母>-<中文科名>/<中文物种名>.yaml；必要时可由 knowledge/*.xlsx 重建
 ├── knowledge/          # Git LFS 管理的原始 WPS xlsx；每科一个工作簿，内嵌照片
 ├── 00-基础知识.xlsx     # Git LFS 管理的基础知识参考表；不参与常规物种导入
 ├── dist/               # 派生导出物（被 .gitignore 忽略，可由 export.py 重建）
@@ -27,6 +27,7 @@ PlantsDataCenter/
 ├── schema/             # 字段规范（人读的权威定义）
 ├── tests/              # 单元测试（python3 -m unittest）
 ├── docs/               # 设计文档与实现计划（superpowers 产物）
+├── DATA_STATS.md       # data/ 当前科数、总物种数与每科物种数统计
 ├── .claude/            # Claude Code 命令与共享记忆文件
 ├── AGENTS.md           # 面向 Codex/自动化协作者的仓库指南
 ├── CLAUDE.md           # 面向 Claude Code 的项目说明
@@ -265,7 +266,7 @@ rm -rf dist && python3 scripts/export.py
 
 > ⚠️ **两个要点**
 > 1. **导入会覆盖 `data/`**：`import_xlsx.py` 以 xlsx 为准重写对应物种的 YAML。若你之前**手工改过** `data/` 里这些物种，重导会覆盖掉那些改动。只有当 xlsx 才是你这次更新的地方时才重导；日常微调建议直接改 `data/*.yaml`，不必走 xlsx。
-> 2. **导入只覆盖/新增、不删除**：若你在 xlsx 里**删除或重命名**了某物种，旧的 `data/<科>/<旧名>.yaml` 会残留。请手动删除它，或先 `rm -rf data/<科>` 再重导该科，保证 `data/` 与 xlsx 一致。
+> 2. **导入只覆盖/新增、不删除**：若你在 xlsx 里**删除或重命名**了某物种，旧的 `data/<拼音首字母>-<科>/<旧名>.yaml` 会残留。请手动删除它，或先 `rm -rf data/<拼音首字母>-<科>` 再重导该科，保证 `data/` 与 xlsx 一致。
 
 ## 数据来源与说明
 
