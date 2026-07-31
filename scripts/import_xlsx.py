@@ -12,7 +12,7 @@ from scripts.yaml_io import dump_species
 
 def family_dir(xlsx_path):
     base = os.path.splitext(os.path.basename(xlsx_path))[0]   # "KM-苦木科"
-    return base.split("-", 1)[1].strip() if "-" in base else base
+    return base.strip()
 
 
 def import_file(xlsx_path, out_root="data", dry_run=False):

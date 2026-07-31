@@ -2,7 +2,7 @@
 
 ## 项目结构与模块组织
 
-PlantsDataCenter 是植物知识结构化数据仓库。`data/` 是唯一真相源，当前包含 44 科、114 个 `*.yaml` 物种文件，路径为 `data/<中文科名>/<中文物种名>.yaml`。`knowledge/` 保存 44 个 WPS/Excel 物种原始工作簿，`00-基础知识.xlsx` 是基础知识参考表；这些 Excel 文件已由 Git LFS 管理，只在重导、补充来源或核对原文时使用。`scripts/` 是 Python 数据管线，CLI 入口为 `import_xlsx.py`、`validate.py`、`export.py`、`retrieve_context.py`，复用模块为 `xlsx_reader.py`、`parser.py`、`yaml_io.py`。`schema/plant.schema.md` 定义字段规范，`tests/` 放 `unittest`，`docs/superpowers/specs/` 与 `docs/superpowers/plans/` 放设计和实现计划。`dist/` 是可重建导出物，已忽略，不作为提交对象。
+PlantsDataCenter 是植物知识结构化数据仓库。`data/` 是唯一真相源，当前包含 45 科、115 个 `*.yaml` 物种文件，路径为 `data/<拼音首字母>-<中文科名>/<中文物种名>.yaml`；根目录 `DATA_STATS.md` 记录当前科数、总物种数与每科物种数。`knowledge/` 保存 45 个 WPS/Excel 物种原始工作簿，`00-基础知识.xlsx` 是基础知识参考表；这些 Excel 文件已由 Git LFS 管理，只在重导、补充来源或核对原文时使用。`scripts/` 是 Python 数据管线，CLI 入口为 `import_xlsx.py`、`validate.py`、`export.py`、`retrieve_context.py`，复用模块为 `xlsx_reader.py`、`parser.py`、`yaml_io.py`。`schema/plant.schema.md` 定义字段规范，`tests/` 放 `unittest`，`docs/superpowers/specs/` 与 `docs/superpowers/plans/` 放设计和实现计划。`dist/` 是可重建导出物，已忽略，不作为提交对象。
 
 ## Build, Test, and Development Commands
 
@@ -26,7 +26,7 @@ YAML 使用 UTF-8，中文不转义，字段顺序保持稳定。每条记录保
 
 ## Testing Guidelines
 
-修改解析、导入、校验、导出、检索或 YAML 序列化逻辑时，在 `tests/test_*.py` 中补充 `unittest`；当前测试套件为 63 项。测试应覆盖真实记录结构、占位归一、可选 `是否发现`、重复中文名、非法 YAML、学名格式、导出 JSON/Markdown/SQLite、问答上下文召回等有业务价值的边界。检索测试要同时保护分类列举查询默认全量返回、`--limit` 的总数/显示数语义，以及单字中文名（如 `槐`、`桃`、`莲`、`桑`、`艾`）在自然问句中的边界匹配，避免 `桑拿`、`艾滋病`、`构造` 这类无关子串误锁。交付前至少运行：
+修改解析、导入、校验、导出、检索或 YAML 序列化逻辑时，在 `tests/test_*.py` 中补充 `unittest`；当前测试套件为 64 项。测试应覆盖真实记录结构、占位归一、可选 `是否发现`、重复中文名、非法 YAML、学名格式、导出 JSON/Markdown/SQLite、问答上下文召回等有业务价值的边界。检索测试要同时保护分类列举查询默认全量返回、`--limit` 的总数/显示数语义，以及单字中文名（如 `槐`、`桃`、`莲`、`桑`、`艾`）在自然问句中的边界匹配，避免 `桑拿`、`艾滋病`、`构造` 这类无关子串误锁。交付前至少运行：
 
 ```bash
 python3 scripts/validate.py
@@ -39,4 +39,4 @@ Git 历史使用简短英文 conventional-style 主题，例如 `docs: ...`、`c
 
 ## Agent-Specific Instructions
 
-以当前代码、`README.md` 和 `CLAUDE.md` 为事实源；若文档口径冲突，先用当前文件与命令验证。不要臆造依赖、数据规模或 Git 状态。保留用户未要求处理的本地文件，例如未跟踪归档或临时材料。重命名或删除物种后，手动清理旧 `data/<科>/<旧名>.yaml`，再重新校验。
+以当前代码、`README.md` 和 `CLAUDE.md` 为事实源；若文档口径冲突，先用当前文件与命令验证。不要臆造依赖、数据规模或 Git 状态。更新 README、AGENTS、CLAUDE 或任何数据规模相关文档时，同步核对并更新根目录 `DATA_STATS.md`。保留用户未要求处理的本地文件，例如未跟踪归档或临时材料。重命名或删除物种后，手动清理旧 `data/<拼音首字母>-<科>/<旧名>.yaml`，再重新校验。

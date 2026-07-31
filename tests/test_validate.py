@@ -26,73 +26,73 @@ GOOD = {
 
 class TestValidate(unittest.TestCase):
     def test_good_record_with_placeholders_passes(self):
-        self.assertEqual(validate_record(GOOD, "data/苦木科/臭椿.yaml"), [])
+        self.assertEqual(validate_record(GOOD, "data/KM-苦木科/臭椿.yaml"), [])
 
     def test_missing_field_reported(self):
         bad = dict(GOOD); del bad["功用价值"]
-        errs = validate_record(bad, "data/苦木科/臭椿.yaml")
+        errs = validate_record(bad, "data/KM-苦木科/臭椿.yaml")
         self.assertTrue(any("功用价值" in e for e in errs))
 
     def test_scientific_name_must_be_real(self):
         bad = dict(GOOD); bad["学名"] = "暂无数据"
-        errs = validate_record(bad, "data/苦木科/臭椿.yaml")
+        errs = validate_record(bad, "data/KM-苦木科/臭椿.yaml")
         self.assertTrue(any("学名" in e for e in errs))
 
     def test_bad_taxonomy_format(self):
         bad = dict(GOOD)
         bad["分类系统"] = dict(GOOD["分类系统"], 属="臭椿属")   # 缺拉丁名与拼音
-        errs = validate_record(bad, "data/苦木科/臭椿.yaml")
+        errs = validate_record(bad, "data/KM-苦木科/臭椿.yaml")
         self.assertTrue(any("属" in e for e in errs))
 
     def test_taxonomy_placeholder_ok(self):
         ok = dict(GOOD); ok["分类系统"] = "暂无数据"
-        self.assertEqual(validate_record(ok, "data/苦木科/臭椿.yaml"), [])
+        self.assertEqual(validate_record(ok, "data/KM-苦木科/臭椿.yaml"), [])
 
     def test_hybrid_scientific_name_ok(self):
         # 杂交种名带 × 记号是合法二名法，不应报错。
         ok = dict(GOOD); ok["学名"] = "Yulania × soulangeana (Soul.-Bod.) D. L. Fu"
         ok["中文名"] = "二乔玉兰"
-        self.assertEqual(validate_record(ok, "data/木兰科/二乔玉兰.yaml"), [])
+        self.assertEqual(validate_record(ok, "data/ML-木兰科/二乔玉兰.yaml"), [])
 
     def test_horticultural_scientific_names_ok(self):
         cultivar = dict(GOOD)
         cultivar["学名"] = "Malus 'Royalty'"
         cultivar["中文名"] = "王族海棠"
-        self.assertEqual(validate_record(cultivar, "data/蔷薇科/王族海棠.yaml"), [])
+        self.assertEqual(validate_record(cultivar, "data/QW-蔷薇科/王族海棠.yaml"), [])
 
         group = dict(GOOD)
         group["学名"] = "Rosa (Climbers Group)"
         group["中文名"] = "藤本月季"
-        self.assertEqual(validate_record(group, "data/蔷薇科/藤本月季.yaml"), [])
+        self.assertEqual(validate_record(group, "data/QW-蔷薇科/藤本月季.yaml"), [])
 
     def test_taxonomy_without_pinyin_ok(self):
         # 个别源数据分类阶缺拼音（如 'Ericales-杜鹃花目'），拼音可选，应放行。
         ok = dict(GOOD)
         ok["分类系统"] = dict(GOOD["分类系统"], 目="Ericales-杜鹃花目")
-        self.assertEqual(validate_record(ok, "data/苦木科/臭椿.yaml"), [])
+        self.assertEqual(validate_record(ok, "data/KM-苦木科/臭椿.yaml"), [])
 
     def test_common_name_list_or_placeholder(self):
         bad = dict(GOOD); bad["俗名"] = 123
-        errs = validate_record(bad, "data/苦木科/臭椿.yaml")
+        errs = validate_record(bad, "data/KM-苦木科/臭椿.yaml")
         self.assertTrue(any("俗名" in e for e in errs))
 
     def test_optional_found_field(self):
         ok = dict(GOOD)
         ok["是否发现"] = "否"
-        self.assertEqual(validate_record(ok, "data/苦木科/臭椿.yaml"), [])
+        self.assertEqual(validate_record(ok, "data/KM-苦木科/臭椿.yaml"), [])
 
         bad = dict(GOOD)
         bad["是否发现"] = "暂无数据"
-        errs = validate_record(bad, "data/苦木科/臭椿.yaml")
+        errs = validate_record(bad, "data/KM-苦木科/臭椿.yaml")
         self.assertTrue(any("是否发现" in e for e in errs))
 
     def test_filename_must_match_chinese_name(self):
-        errs = validate_record(GOOD, "data/苦木科/错误名.yaml")
+        errs = validate_record(GOOD, "data/KM-苦木科/错误名.yaml")
         self.assertTrue(any("文件名" in e for e in errs))
 
     def test_empty_yaml_reported_not_crashed(self):
         # 空 YAML 文件 → yaml.safe_load 返回 None，应报错而非崩溃。
-        errs = validate_record(None, "data/苦木科/空.yaml")
+        errs = validate_record(None, "data/KM-苦木科/空.yaml")
         self.assertEqual(len(errs), 1)
         self.assertIn("无法解析为映射", errs[0])
 

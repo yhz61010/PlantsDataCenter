@@ -9,14 +9,14 @@ class TestImport(unittest.TestCase):
         shutil.rmtree(self.tmp)
 
     def test_family_dir_from_filename(self):
-        self.assertEqual(family_dir("knowledge/KM-苦木科.xlsx"), "苦木科")
-        self.assertEqual(family_dir("knowledge/MX-木樨科.xlsx"), "木樨科")
+        self.assertEqual(family_dir("knowledge/KM-苦木科.xlsx"), "KM-苦木科")
+        self.assertEqual(family_dir("knowledge/MX-木樨科.xlsx"), "MX-木樨科")
 
     def test_import_writes_yaml_that_roundtrips(self):
         paths = import_file("knowledge/KM-苦木科.xlsx", out_root=self.tmp)
         self.assertEqual(len(paths), 1)
         p = paths[0]
-        self.assertTrue(p.endswith(os.path.join("苦木科", "臭椿.yaml")))
+        self.assertTrue(p.endswith(os.path.join("KM-苦木科", "臭椿.yaml")))
         with open(p, encoding="utf-8") as fh:
             data = yaml.safe_load(fh)
         self.assertEqual(data["中文名"], "臭椿")
