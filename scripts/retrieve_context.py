@@ -221,8 +221,8 @@ def score_record(record, query, terms, rank_query=False):
         for term in terms:
             if term in text:
                 score += weight * min(len(term), 8)
-            matched_terms.add(term)
-            matched_fields.add(field)
+                matched_terms.add(term)
+                matched_fields.add(field)
 
     found = record.get("是否发现")
     if found == "否" and any(marker in query for marker in NOT_FOUND_QUERY_MARKERS):
