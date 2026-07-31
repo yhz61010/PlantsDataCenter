@@ -1,5 +1,5 @@
 import json, os, shutil, tempfile, unittest
-from scripts.export import load_all, export_json, to_markdown
+from scripts.export import load_all, export_json, export_full_markdown, to_markdown
 
 class TestExport(unittest.TestCase):
     def setUp(self):
@@ -54,6 +54,26 @@ class TestExport(unittest.TestCase):
         self.assertIn("羽状复叶", md)
         self.assertIn("## 植物志", md)
         self.assertNotIn("## 功用价值", md)   # 占位区块不渲染
+
+    def test_export_full_markdown_contains_all_record_fields(self):
+        rec = {
+            "学名": "Ailanthus altissima (Mill.) Swingle",
+            "中文名": "臭椿",
+            "是否发现": "否",
+            "俗名": ["樗"],
+            "异名": "无",
+            "描述": "暂无数据",
+            "分类系统": {"科": "Simaroubaceae-苦木科(kǔ mù kē)"},
+            "元数据": {"来源文件": "KM-苦木科.xlsx", "来源工作表": "臭椿"},
+        }
+        out = export_full_markdown([rec], os.path.join(self.tmp, "plants.md"))
+        with open(out, encoding="utf-8") as fh:
+            md = fh.read()
+        self.assertIn("# PlantsDataCenter 全量物种数据", md)
+        self.assertIn("## 1. 臭椿", md)
+        self.assertIn("### 是否发现\n\n否", md)
+        self.assertIn("### 元数据", md)
+        self.assertIn("- **来源文件**：KM-苦木科.xlsx", md)
 
 if __name__ == "__main__":
     unittest.main()

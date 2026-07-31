@@ -42,6 +42,23 @@ def export_json(records, out="dist/plants.json"):
 
 
 MAP_SECTIONS = ("物种保护", "分类信息", "形态特征", "生态习性", "功用价值")
+FIELD_ORDER = (
+    "学名",
+    "中文名",
+    "是否发现",
+    "俗名",
+    "异名",
+    "描述",
+    "分类系统",
+    "物种保护",
+    "分类信息",
+    "形态特征",
+    "生态习性",
+    "功用价值",
+    "植物志",
+    "元数据",
+    "备注",
+)
 
 
 def to_markdown(rec):
@@ -73,6 +90,38 @@ def export_markdown(records, out_dir="dist/md"):
         written.append(out)
     print(f"写出 {len(written)} 个 Markdown 到 {out_dir}")
     return written
+
+
+def _markdown_value(v):
+    if isinstance(v, dict):
+        return "\n".join(f"- **{k}**：{val}" for k, val in v.items())
+    if isinstance(v, list):
+        return "\n".join(f"- {item}" for item in v)
+    return str(v)
+
+
+def _record_fields(rec):
+    seen = set()
+    for field in FIELD_ORDER:
+        if field in rec:
+            seen.add(field)
+            yield field, rec[field]
+    for field, value in rec.items():
+        if field not in seen:
+            yield field, value
+
+
+def export_full_markdown(records, out="dist/plants.md"):
+    _ensure_dir(out)
+    lines = ["# PlantsDataCenter 全量物种数据", "", f"共 {len(records)} 条记录。", ""]
+    for idx, rec in enumerate(records, 1):
+        lines.extend([f"## {idx}. {rec.get('中文名', '未命名')}", ""])
+        for field, value in _record_fields(rec):
+            lines.extend([f"### {field}", "", _markdown_value(value), ""])
+    with open(out, "w", encoding="utf-8") as fh:
+        fh.write("\n".join(lines).rstrip() + "\n")
+    print(f"写出 {out}（{len(records)} 条）")
+    return out
 
 
 def _as_list(v):
@@ -118,8 +167,8 @@ def export_sqlite(records, out="dist/plants.sqlite"):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="从 data/ 导出 JSON/Markdown")
-    ap.add_argument("--only", default="json,md,sqlite")
+    ap = argparse.ArgumentParser(description="从 data/ 导出 JSON/Markdown/SQLite")
+    ap.add_argument("--only", default="json,md,fullmd,sqlite")
     ap.add_argument("--root", default="data")
     ap.add_argument("--dist", default="dist")
     args = ap.parse_args()
@@ -129,6 +178,8 @@ def main():
         export_json(records, os.path.join(args.dist, "plants.json"))
     if "md" in only:
         export_markdown(records, os.path.join(args.dist, "md"))
+    if "fullmd" in only:
+        export_full_markdown(records, os.path.join(args.dist, "plants.md"))
     if "sqlite" in only:
         export_sqlite(records, os.path.join(args.dist, "plants.sqlite"))
 

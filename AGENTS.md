@@ -11,8 +11,8 @@ PlantsDataCenter 是植物知识结构化数据仓库。`data/` 是唯一真相�
 - `git lfs install && git lfs pull --include="knowledge/*.xlsx,00-基础知识.xlsx"`：新 clone 后下载 Excel 实体文件；若仍是指针文件，补跑同范围 `git lfs fetch` 后执行 `git lfs checkout`。
 - `python3 scripts/import_xlsx.py knowledge/*.xlsx`：从 xlsx 重建 `data/**/*.yaml`；覆盖同名记录，但不删除旧文件。
 - `python3 scripts/validate.py`：校验全部 YAML 记录。
-- `python3 scripts/export.py`：生成 `dist/plants.json`、`dist/md/*.md`、`dist/plants.sqlite`。
-- `python3 scripts/export.py --only json,md`：只导出指定格式。
+- `python3 scripts/export.py`：生成 `dist/plants.json`、`dist/plants.md`、`dist/md/*.md`、`dist/plants.sqlite`；`plants.md` 是保留所有字段的全量单文件 Markdown，`dist/md/*.md` 是逐物种阅读版。
+- `python3 scripts/export.py --only json,md`：只导出 JSON 和逐物种 Markdown；`--only fullmd` 只导出全量单文件 Markdown。
 - `python3 scripts/retrieve_context.py "臭椿有什么用途" --prompt`：为 AI 问答生成 grounded context；`--json` 供自动化集成，`--fields 分类系统,功用价值` 可限制上下文字段。
 - `python3 -m unittest discover -s tests`：运行单元测试。
 
@@ -26,7 +26,7 @@ YAML 使用 UTF-8，中文不转义，字段顺序保持稳定。每条记录保
 
 ## Testing Guidelines
 
-修改解析、导入、校验、导出、检索或 YAML 序列化逻辑时，在 `tests/test_*.py` 中补充 `unittest`；当前测试套件为 62 项。测试应覆盖真实记录结构、占位归一、可选 `是否发现`、重复中文名、非法 YAML、学名格式、导出 JSON/Markdown/SQLite、问答上下文召回等有业务价值的边界。检索测试要同时保护分类列举查询默认全量返回、`--limit` 的总数/显示数语义，以及单字中文名（如 `槐`、`桃`、`莲`、`桑`、`艾`）在自然问句中的边界匹配，避免 `桑拿`、`艾滋病`、`构造` 这类无关子串误锁。交付前至少运行：
+修改解析、导入、校验、导出、检索或 YAML 序列化逻辑时，在 `tests/test_*.py` 中补充 `unittest`；当前测试套件为 63 项。测试应覆盖真实记录结构、占位归一、可选 `是否发现`、重复中文名、非法 YAML、学名格式、导出 JSON/Markdown/SQLite、问答上下文召回等有业务价值的边界。检索测试要同时保护分类列举查询默认全量返回、`--limit` 的总数/显示数语义，以及单字中文名（如 `槐`、`桃`、`莲`、`桑`、`艾`）在自然问句中的边界匹配，避免 `桑拿`、`艾滋病`、`构造` 这类无关子串误锁。交付前至少运行：
 
 ```bash
 python3 scripts/validate.py
