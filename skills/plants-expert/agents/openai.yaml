@@ -1,0 +1,4 @@
+interface:
+  display_name: "Plants Expert"
+  short_description: "专业植物知识查询、图片识别、分类信息与相似物种区分助手"
+  default_prompt: "Use $plants-expert to query or identify a plant and provide grounded botanical details."
