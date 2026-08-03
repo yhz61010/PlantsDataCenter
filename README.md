@@ -6,7 +6,7 @@
 本知识库主体记录的是在**大连**实际遇到、观察或整理过的植物，不代表完整的区域植物志名录。
 少量为物种对比与学习而收录、但尚未在大连发现过的植物，会用可选字段 `是否发现: 否` 标记。
 
-- **46 科 · 122 物种，其中大连已发现 121 物种**
+- **46 科 · 125 物种，其中大连已发现 122 物种**
 - **数据统计**：当前科数、总物种数与每科物种数见 [`DATA_STATS.md`](DATA_STATS.md)
 - **一个运行时依赖**：Python 3.11+ + PyYAML（无需 `openpyxl`）
 - **单向管线**：`knowledge/*.xlsx`（物种原始表）→ `data/**/*.yaml`（真相源）→ `dist/*`（派生物）
@@ -164,7 +164,7 @@ python3 scripts/import_xlsx.py knowledge/*.xlsx
 python3 scripts/validate.py
 
 # 导出 JSON / 全量 Markdown / 逐物种 Markdown / SQLite 到 dist/
-# 汇总文件会加运行当天日期前缀，如 20260731-plants.json
+# 汇总文件会加运行当天日期前缀，如 20260803-plants.json
 python3 scripts/export.py                 # 全部
 python3 scripts/export.py --only json,md  # 仅 JSON + 逐物种 Markdown
 python3 scripts/export.py --only fullmd   # 仅全量单文件 Markdown
