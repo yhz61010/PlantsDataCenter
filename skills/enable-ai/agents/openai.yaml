@@ -1,0 +1,4 @@
+interface:
+  display_name: "Enable AI"
+  short_description: "初始化或复核 Codex 文档、记忆、Git 与 AGENTS.md 配置"
+  default_prompt: "使用 $enable-ai 初始化或复核当前项目的 Codex 协作配置。"
