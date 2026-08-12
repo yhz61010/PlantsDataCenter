@@ -1,5 +1,10 @@
 # 植物知识库 · 结构化数据仓库 实现计划
 
+> **历史文档说明（2026-08-12）**：本文记录 2026-07-23 的初始实施过程，其中提交 `knowledge/`
+> 或修改 Claude 配置的命令不再适用于当前仓库。当前仓库已从全部 Git 历史移除 `knowledge/`
+> 和 `00-基础知识.xlsx`，不再使用 Git LFS；Excel 仅在本地保存并受 `.gitignore` 保护。
+> 当前操作规范以根目录 `README.md` 和 `AGENTS.md` 为准。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 把 `knowledge/` 下的 WPS xlsx 一次性导入为每物种一个 YAML 的纯文本真相源，并提供校验与 JSON/Markdown/SQLite 导出。

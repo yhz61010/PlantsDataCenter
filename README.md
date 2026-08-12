@@ -18,7 +18,6 @@
 PlantsDataCenter/
 ├── data/               # 日常真相源：每物种一个 YAML；data/<拼音首字母>-<中文科名>/<中文物种名>.yaml
 ├── knowledge/          # 本地原始 WPS xlsx（被忽略，不随仓库分发）
-├── 00-基础知识.xlsx     # 本地基础知识参考表（被忽略，不随仓库分发）
 ├── dist/               # 派生导出物（被 .gitignore 忽略，可由 export.py 重建）
 │   ├── YYYYMMDD-plants.json
 │   ├── YYYYMMDD-plants.md
@@ -83,10 +82,11 @@ python3 -m venv .venv && source .venv/bin/activate && pip install pyyaml
 python3 -c "import yaml; print('PyYAML', yaml.__version__)"   # 打印版本号即 OK
 ```
 
-## 本地 Excel 源文件
+## 本地 Excel 源文件（不纳入 Git）
 
-`knowledge/` 和 `00-基础知识.xlsx` 已从 Git 历史中移除，并由 `.gitignore` 忽略。新的 clone
-只包含可直接使用的 YAML 真相源、脚本、测试和文档，不包含任何 Excel 文件，也不需要安装 Git LFS。
+`knowledge/` 已从 Git 历史中移除，并由 `.gitignore` 忽略。新的 clone
+只包含可直接使用的 YAML 真相源、脚本、测试和文档，不包含任何 Excel 文件。本仓库不再配置或使用
+Git LFS，新 clone 无需安装 Git LFS，也无法从 GitHub 下载这些工作簿。
 
 维护者需要重导或核对原文时，应从独立备份把工作簿放回本地对应路径。不要使用 `git add -f`
 绕过忽略规则，也不要把这些文件重新提交到本仓库。未准备本地工作簿时，导入命令不可用，
@@ -174,13 +174,11 @@ python3 scripts/retrieve_context.py "哪些植物未在大连发现？"
 | `parser.py`      | 区块状态机：把行网格解析为 13 个必填字段和可选 `是否发现`（gap 判定植物志、占位补全、无法归类段落兜底进 `备注`、中文名去拼音） | `import_xlsx.py` |
 | `yaml_io.py`     | 统一 YAML 序列化（中文不转义、字段顺序稳定、长行不折断） | `import_xlsx.py`、`export.py` |
 
-## 新增或修改 Excel 后如何重跑
+## 本地新增或修改 Excel 后如何重跑
 
-Excel 原始数据在 `knowledge/`，文件名须遵循 `<拼音首字母>-<中文科名>.xlsx`（如 `KM-苦木科.xlsx`）——
+Excel 原始数据由维护者独立备份，并按需放入本地 `knowledge/`。文件名须遵循
+`<拼音首字母>-<中文科名>.xlsx`（如 `KM-苦木科.xlsx`）——
 科目录名就是文件名去掉拼音前缀的部分。改动 xlsx 后按下面重跑三步：**导入 → 校验 → 重建导出**。
-
-根目录的 `00-基础知识.xlsx` 是本地基础知识参考表，不是“一个科对应一个工作簿”的物种数据源，
-也不纳入 Git。修改它后不要用 `import_xlsx.py` 导入，也不要提交到本仓库。
 
 **A. 新增一个科（放入一个新 xlsx）**
 
@@ -214,8 +212,8 @@ rm -rf dist && python3 scripts/export.py
 
 物种相关知识主要参考 [植物科学数据中心](https://www.plantplus.cn/cn)，并结合在大连的实际观察与整理记录进行结构化。
 
-本地 `knowledge/` 中的 xlsx 是 **WPS Office** 工作簿，内嵌 JPEG 照片（故文件较大）；
-`00-基础知识.xlsx` 是本地基础知识参考表。两者均不随 Git 仓库分发。日常修订应直接改
-`data/` 下的 YAML，Excel 文件仅在需要重新导入、补充来源或核对原文时使用。
+本地 `knowledge/` 中的 xlsx 是 **WPS Office** 工作簿，内嵌 JPEG 照片（故文件较大），
+不随 Git 仓库分发。日常修订应直接改 `data/` 下的 YAML，Excel 文件仅在需要重新导入、
+补充来源或核对原文时使用。
 
 面向 AI 协作者的详细工作流与约定见 [`CLAUDE.md`](CLAUDE.md)。
