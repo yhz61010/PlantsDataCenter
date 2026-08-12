@@ -16,7 +16,7 @@ PlantsDataCenter 是一个**植物学参考数据集与结构化数据仓库**�
 `KM-苦木科.xlsx`（Simaroubaceae）、`ML-木兰科.xlsx`（Magnoliaceae）、
 `J-菊科.xlsx`（Asteraceae）。
 
-根目录的 `00-基础知识.xlsx` 是基础知识参考表，由 Git LFS 管理，但不是常规“一科多物种”的导入入口。
+根目录的 `00-基础知识.xlsx` 是基础知识参考表，为本地文件（被 `.gitignore` 忽略、不随仓库分发），但不是常规“一科多物种”的导入入口。
 
 在 `knowledge/` 的一个工作簿内，**每个工作表对应一个物种**（工作表以中文物种名命名，如 `玉兰`、`二乔玉兰`）。
 包含照片的工作簿还会带一个名为 `WpsReserved_CellImgList` 的保留工作表——这是 WPS Office
@@ -48,7 +48,7 @@ PlantsDataCenter 是一个**植物学参考数据集与结构化数据仓库**�
   用其他工具可能无法完整往返转换。
 - 当前环境**未安装 `openpyxl`**，且文本内容无法通过普通 `cat` 读取。若不用电子表格软件查看，
   可把 `.xlsx` 当作 zip 处理（注：解析 xlsx 已由 `scripts/xlsx_reader.py` 实现，优先用它；下面的手动
-  unzip 仅作格式参考，且在无 git-lfs 的机器上对 LFS 指针文件无效）：
+  unzip 仅作格式参考，且仅在本地已放好实体工作簿时有效）：
   - 列出工作表/物种：`unzip -p "<文件>.xlsx" xl/workbook.xml | grep -o 'sheet name="[^"]*"'`
   - 单元格文本存放在 `xl/sharedStrings.xml`（提取 `<t>…</t>` 的值）；单元格通过索引引用这些
     字符串，因此需要把 `xl/worksheets/sheetN.xml` 中 `<c t="s"><v>` 的索引与该列表对应起来，
@@ -61,7 +61,7 @@ PlantsDataCenter 是一个**植物学参考数据集与结构化数据仓库**�
 xlsx 中的物种记录抽取为逐物种的 YAML，并可再导出为多种格式。
 
 - **`data/` 是真相源**。每个物种一个文件，路径为 `data/<拼音首字母>-<中文科名>/<物种>.yaml`（科目录名
-  与对应 `knowledge/*.xlsx` 文件名去掉 `.xlsx` 后一致）。全量共 **51 科 144 物种**。每条记录含 **13 个必填字段**：
+  与对应 `knowledge/*.xlsx` 文件名去掉 `.xlsx` 后一致）。全量共 **53 科 157 物种**。每条记录含 **13 个必填字段**：
   `学名` `中文名` `俗名` `异名` `描述` `分类系统` `物种保护` `分类信息` `形态特征`
   `生态习性` `功用价值` `植物志` `元数据`。字段缺失时**补占位**（映射型区块为 `暂无数据`、
   列表型字段为 `无`），保证结构齐整。无法归类的段落会兜底进 `备注` 字段（导入时打印 `WARN`，
@@ -76,9 +76,11 @@ xlsx 中的物种记录抽取为逐物种的 YAML，并可再导出为多种格�
   校验对两种写法都放行。
 - **`knowledge/` 是物种原始表来源**，`00-基础知识.xlsx` 是基础知识参考表；这些 Excel 文件仅在需要
   重新导入、补充来源或核对原文时使用。日常修订应直接改 `data/` 下的 YAML。
-- **`knowledge/*.xlsx` 和 `00-基础知识.xlsx` 由 Git LFS 管理**：新克隆需 `git lfs pull` 拉实体，否则是指针文本，
-  `import_xlsx.py` 与读 xlsx 的测试会报 `BadZipFile`（`data/` 下的 YAML 不受影响，validate/export/
-  retrieve 照常）。本机若无 git-lfs，可对这些文件 `git update-index --skip-worktree` 防误提交大二进制。
+- **`knowledge/*.xlsx` 和 `00-基础知识.xlsx` 为本地文件、不纳入 Git**：仓库不再配置或使用 Git LFS，
+  这两类文件已从 Git 历史移除并被 `.gitignore` 忽略，新克隆不含任何 Excel（只有 `data/` 下的 YAML
+  真相源、脚本、测试和文档，validate/export/retrieve 照常）。需要重导或核对原文时，维护者应从独立
+  备份把工作簿放回本地对应路径；未放实体时 `import_xlsx.py` 与读 xlsx 的测试会报 `BadZipFile`。
+  不要用 `git add -f` 绕过忽略规则把这些大二进制重新提交进仓库。
 - **脚本**（`scripts/`，均以 `python3 scripts/<名>.py` 运行，自带 `sys.path` 引导）。四个 CLI
   入口 + 三个被复用的模块（`xlsx_reader.py` 读 A/B/C 网格、`parser.py` 区块状态机、`yaml_io.py`
   统一序列化）：
@@ -130,6 +132,7 @@ xlsx 中的物种记录抽取为逐物种的 YAML，并可再导出为多种格�
 
 - Git commit message 使用英文编写。
 - 代码注释使用英文编写。
+- Git 提交统一使用 `Michael Leo <yhzemail61010@aliyun.com>` 作为提交身份。
 
 ## 项目记忆
 

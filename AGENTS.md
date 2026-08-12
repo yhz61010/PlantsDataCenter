@@ -2,13 +2,13 @@
 
 ## 项目结构与模块组织
 
-PlantsDataCenter 是植物知识结构化数据仓库。`data/` 是唯一真相源，当前包含 53 科、157 个 `*.yaml` 物种文件，路径为 `data/<拼音首字母>-<中文科名>/<中文物种名>.yaml`；根目录 `DATA_STATS.md` 记录当前科数、总物种数与每科物种数。本地 `knowledge/` 可保存 53 个 WPS/Excel 物种原始工作簿；该目录被 `.gitignore` 忽略，不随仓库分发，只在重导、补充来源或核对原文时使用。仓库不再配置或使用 Git LFS。`scripts/` 是 Python 数据管线，CLI 入口为 `import_xlsx.py`、`validate.py`、`export.py`、`retrieve_context.py`，复用模块为 `xlsx_reader.py`、`parser.py`、`yaml_io.py`。`schema/plant.schema.md` 定义字段规范，`tests/` 放 `unittest`，`docs/superpowers/specs/` 与 `docs/superpowers/plans/` 放设计和实现计划。`dist/` 是可重建导出物，已忽略，不作为提交对象。
+PlantsDataCenter 是植物知识结构化数据仓库。`data/` 是唯一真相源，当前包含 53 科、157 个 `*.yaml` 物种文件，路径为 `data/<拼音首字母>-<中文科名>/<中文物种名>.yaml`；根目录 `DATA_STATS.md` 记录当前科数、总物种数与每科物种数。本地 `knowledge/` 可保存 53 个 WPS/Excel 物种原始工作簿，`00-基础知识.xlsx` 是本地基础知识参考表；两者均被 `.gitignore` 忽略，不随仓库分发，只在重导、补充来源或核对原文时使用。仓库不再配置或使用 Git LFS。`scripts/` 是 Python 数据管线，CLI 入口为 `import_xlsx.py`、`validate.py`、`export.py`、`retrieve_context.py`，复用模块为 `xlsx_reader.py`、`parser.py`、`yaml_io.py`。`schema/plant.schema.md` 定义字段规范，`tests/` 放 `unittest`，`docs/superpowers/specs/` 与 `docs/superpowers/plans/` 放设计和实现计划。`dist/` 是可重建导出物，已忽略，不作为提交对象。
 
 ## Build, Test, and Development Commands
 
 所有命令从仓库根目录运行：
 
-- 从独立备份把 Excel 放入本地 `knowledge/`：仅在需要重导或核对原文时准备；不要提交这些被忽略的文件。
+- 从独立备份把 Excel 放入本地 `knowledge/` 和根目录 `00-基础知识.xlsx`：仅在需要重导或核对原文时准备；不要提交这些被忽略的文件。
 - `python3 scripts/import_xlsx.py knowledge/*.xlsx`：从 xlsx 重建 `data/**/*.yaml`；覆盖同名记录，但不删除旧文件。
 - `python3 scripts/validate.py`：校验全部 YAML 记录。
 - `python3 scripts/export.py`：生成 `dist/YYYYMMDD-plants.json`、`dist/YYYYMMDD-plants.md`、`dist/md/*.md`、`dist/YYYYMMDD-plants.sqlite`；`YYYYMMDD` 为运行当天日期，`YYYYMMDD-plants.md` 是保留所有字段的全量单文件 Markdown，`dist/md/*.md` 是逐物种阅读版。
@@ -35,7 +35,7 @@ python3 -m unittest discover -s tests
 
 ## Commit & Pull Request Guidelines
 
-Git 历史使用简短英文 conventional-style 主题，例如 `docs: ...`、`chore: ...`、`fix: ...`、`data: ...`、`harden: ...`。提交应聚焦一个逻辑变更；不要提交 `knowledge/` 或 `dist/`，除非任务明确改变仓库策略。PR 需说明数据或脚本改动、列出已运行的校验/测试命令、注明是否从本地 `knowledge/` 重导，并点名任何重命名或删除的物种，方便检查残留 YAML。
+Git 历史使用简短英文 conventional-style 主题，例如 `docs: ...`、`chore: ...`、`fix: ...`、`data: ...`、`harden: ...`。提交应聚焦一个逻辑变更；不要提交 `knowledge/`、`00-基础知识.xlsx` 或 `dist/`，除非任务明确改变仓库策略。PR 需说明数据或脚本改动、列出已运行的校验/测试命令、注明是否从本地 `knowledge/` 重导，并点名任何重命名或删除的物种，方便检查残留 YAML。
 
 ## Agent-Specific Instructions
 

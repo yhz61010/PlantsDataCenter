@@ -84,9 +84,10 @@ python3 -c "import yaml; print('PyYAML', yaml.__version__)"   # 打印版本号�
 
 ## 本地 Excel 源文件（不纳入 Git）
 
-`knowledge/` 已从 Git 历史中移除，并由 `.gitignore` 忽略。新的 clone
-只包含可直接使用的 YAML 真相源、脚本、测试和文档，不包含任何 Excel 文件。本仓库不再配置或使用
-Git LFS，新 clone 无需安装 Git LFS，也无法从 GitHub 下载这些工作簿。
+本地 `knowledge/` 可保存 WPS/Excel 物种原始工作簿，根目录的 `00-基础知识.xlsx` 是本地基础知识参考表；
+两者均被 `.gitignore` 忽略，不随仓库分发，只在重导、补充来源或核对原文时使用。这两类 Excel 已从
+Git 历史中移除。新的 clone 只包含可直接使用的 YAML 真相源、脚本、测试和文档，不包含任何 Excel 文件。
+本仓库不再配置或使用 Git LFS，新 clone 无需安装 Git LFS，也无法从 GitHub 下载这些工作簿。
 
 维护者需要重导或核对原文时，应从独立备份把工作簿放回本地对应路径。不要使用 `git add -f`
 绕过忽略规则，也不要把这些文件重新提交到本仓库。未准备本地工作簿时，导入命令不可用，
