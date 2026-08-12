@@ -1,7 +1,9 @@
+import os
 import unittest
 from scripts.xlsx_reader import col_letter, read_sheets
 
 KM = "knowledge/KM-苦木科.xlsx"
+HAS_LOCAL_WORKBOOKS = os.path.exists(KM)
 
 class TestXlsxReader(unittest.TestCase):
     def test_col_letter(self):
@@ -9,6 +11,7 @@ class TestXlsxReader(unittest.TestCase):
         self.assertEqual(col_letter("C11"), "C")
         self.assertEqual(col_letter("AB123"), "AB")
 
+    @unittest.skipUnless(HAS_LOCAL_WORKBOOKS, "requires local knowledge workbooks")
     def test_read_sheets_skips_image_sheet_and_reads_grid(self):
         sheets = read_sheets(KM)
         names = [n for n, _ in sheets]
@@ -19,6 +22,7 @@ class TestXlsxReader(unittest.TestCase):
         self.assertEqual(rows[17]["C"], "Simaroubaceae-苦木科(kǔ mù kē)")
         self.assertEqual(rows[4]["B"], "Toxicodendron altissimum\xa0(synonym)")
 
+    @unittest.skipUnless(HAS_LOCAL_WORKBOOKS, "requires local knowledge workbooks")
     def test_image_sheet_skipped_and_no_dispimg_leak(self):
         # ML-木兰科.xlsx 含内嵌图片：应跳过 WpsReserved_CellImgList，
         # 且 D 列起的 DISPIMG 图片公式不得进入行网格。
@@ -32,6 +36,7 @@ class TestXlsxReader(unittest.TestCase):
                     self.assertIn(k, ("A", "B", "C"))     # 只保留 A/B/C
                     self.assertNotIn("DISPIMG", v)         # 图片公式不泄漏
 
+    @unittest.skipUnless(HAS_LOCAL_WORKBOOKS, "requires local knowledge workbooks")
     def test_dispimg_in_c_column_filtered(self):
         # MX-木樨科.xlsx 的“金钟花”把 DISPIMG 图片公式放在 C 列，
         # 仅靠列过滤不够，必须按值前缀过滤。

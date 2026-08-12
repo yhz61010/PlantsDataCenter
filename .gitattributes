@@ -1,2 +1,0 @@
-knowledge/*.xlsx filter=lfs diff=lfs merge=lfs -text
-00-基础知识.xlsx filter=lfs diff=lfs merge=lfs -text

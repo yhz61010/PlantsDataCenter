@@ -4,6 +4,8 @@ from scripts.xlsx_reader import read_sheets
 from scripts.parser import parse_species
 
 def load(path, sheet):
+    if not os.path.exists(path):
+        raise unittest.SkipTest("requires local knowledge workbooks")
     for name, rows in read_sheets(path):
         if name == sheet:
             return parse_species(rows, os.path.basename(path), name)

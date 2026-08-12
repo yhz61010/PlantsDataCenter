@@ -2,6 +2,8 @@ import os, shutil, tempfile, unittest
 import yaml
 from scripts.import_xlsx import import_file, family_dir
 
+HAS_LOCAL_WORKBOOKS = os.path.exists("knowledge/KM-苦木科.xlsx")
+
 class TestImport(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.mkdtemp()
@@ -12,6 +14,7 @@ class TestImport(unittest.TestCase):
         self.assertEqual(family_dir("knowledge/KM-苦木科.xlsx"), "KM-苦木科")
         self.assertEqual(family_dir("knowledge/MX-木樨科.xlsx"), "MX-木樨科")
 
+    @unittest.skipUnless(HAS_LOCAL_WORKBOOKS, "requires local knowledge workbooks")
     def test_import_writes_yaml_that_roundtrips(self):
         paths = import_file("knowledge/KM-苦木科.xlsx", out_root=self.tmp)
         self.assertEqual(len(paths), 1)
@@ -23,6 +26,7 @@ class TestImport(unittest.TestCase):
         self.assertEqual(data["分类系统"]["属"], "Ailanthus-臭椿属(chòu chūn shǔ)")
         self.assertEqual(data["元数据"]["来源工作表"], "臭椿")
 
+    @unittest.skipUnless(HAS_LOCAL_WORKBOOKS, "requires local knowledge workbooks")
     def test_all_fields_present_with_placeholders(self):
         paths = import_file("knowledge/KM-苦木科.xlsx", out_root=self.tmp)
         with open(paths[0], encoding="utf-8") as fh:
@@ -32,6 +36,7 @@ class TestImport(unittest.TestCase):
         self.assertEqual(
             list(data.keys())[:5], ["学名","中文名","俗名","异名","描述"])
 
+    @unittest.skipUnless(HAS_LOCAL_WORKBOOKS, "requires local knowledge workbooks")
     def test_yaml_is_unicode_not_escaped(self):
         paths = import_file("knowledge/KM-苦木科.xlsx", out_root=self.tmp)
         with open(paths[0], encoding="utf-8") as fh:

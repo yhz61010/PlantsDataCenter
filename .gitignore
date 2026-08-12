@@ -1,6 +1,10 @@
 # 派生导出物，可由 export.py 重建
 dist/
 
+# 本地 Excel 原始资料，不随 Git 仓库分发
+/knowledge/
+/00-基础知识.xlsx
+
 # Python
 __pycache__/
 *.py[cod]

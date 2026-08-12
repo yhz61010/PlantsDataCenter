@@ -9,16 +9,16 @@
 - **53 科 · 157 物种，其中大连已发现 148 物种**
 - **数据统计**：当前科数、总物种数与每科物种数见 [`DATA_STATS.md`](DATA_STATS.md)
 - **一个运行时依赖**：Python 3.11+ + PyYAML（无需 `openpyxl`）
-- **单向管线**：`knowledge/*.xlsx`（物种原始表）→ `data/**/*.yaml`（真相源）→ `dist/*`（派生物）
-- **可重建数据层**：日常以 `data/` 为准；必要时可从 `knowledge/*.xlsx` 重新导入，重建对应 YAML。
+- **单向管线**：本地 `knowledge/*.xlsx`（物种原始表）→ `data/**/*.yaml`（真相源）→ `dist/*`（派生物）
+- **可重建数据层**：日常以 `data/` 为准；维护者可用本地工作簿重新导入，重建对应 YAML。
 
 ## 目录结构
 
 ```
 PlantsDataCenter/
-├── data/               # 日常真相源：每物种一个 YAML；data/<拼音首字母>-<中文科名>/<中文物种名>.yaml；必要时可由 knowledge/*.xlsx 重建
-├── knowledge/          # Git LFS 管理的原始 WPS xlsx；每科一个工作簿，内嵌照片
-├── 00-基础知识.xlsx     # Git LFS 管理的基础知识参考表；不参与常规物种导入
+├── data/               # 日常真相源：每物种一个 YAML；data/<拼音首字母>-<中文科名>/<中文物种名>.yaml
+├── knowledge/          # 本地原始 WPS xlsx（被忽略，不随仓库分发）
+├── 00-基础知识.xlsx     # 本地基础知识参考表（被忽略，不随仓库分发）
 ├── dist/               # 派生导出物（被 .gitignore 忽略，可由 export.py 重建）
 │   ├── YYYYMMDD-plants.json
 │   ├── YYYYMMDD-plants.md
@@ -32,8 +32,7 @@ PlantsDataCenter/
 ├── .claude/            # Claude Code 命令与共享记忆文件
 ├── AGENTS.md           # 面向 Codex/自动化协作者的仓库指南
 ├── CLAUDE.md           # 面向 Claude Code 的项目说明
-├── .gitattributes      # Git LFS 跟踪规则
-└── .gitignore          # 忽略 dist/、缓存等本地生成物
+└── .gitignore          # 忽略 Excel、dist/、缓存等本地文件
 ```
 
 ## 数据模型
@@ -84,73 +83,14 @@ python3 -m venv .venv && source .venv/bin/activate && pip install pyyaml
 python3 -c "import yaml; print('PyYAML', yaml.__version__)"   # 打印版本号即 OK
 ```
 
-## Git LFS 数据文件
+## 本地 Excel 源文件
 
-`knowledge/*.xlsx` 和 `00-基础知识.xlsx` 由 Git LFS 管理。新 clone 的用户需要先安装并初始化 Git LFS，
-否则这些文件可能只是指针文件，无法被 `scripts/import_xlsx.py` 正常读取。
+`knowledge/` 和 `00-基础知识.xlsx` 已从 Git 历史中移除，并由 `.gitignore` 忽略。新的 clone
+只包含可直接使用的 YAML 真相源、脚本、测试和文档，不包含任何 Excel 文件，也不需要安装 Git LFS。
 
-```bash
-# 首次使用 Git LFS
-git lfs install
-
-# clone 后下载 Excel 实体文件
-git lfs pull --include="knowledge/*.xlsx,00-基础知识.xlsx"
-
-# 若已经 clone 过，也可以重新拉取缺失的 LFS 对象
-git lfs fetch --include="knowledge/*.xlsx,00-基础知识.xlsx"
-git lfs checkout
-```
-
-检查文件是否已经下载为真实 xlsx：
-
-```bash
-file knowledge/KM-苦木科.xlsx
-file 00-基础知识.xlsx
-```
-
-如果只想先下载仓库主体文件（`data/`、`scripts/`、文档等），暂时不下载体积较大的植物知识 Excel，
-可以在 clone 时跳过 Git LFS 自动下载：
-
-```bash
-GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/yhz61010/PlantsDataCenter.git
-cd PlantsDataCenter
-```
-
-这样 Excel 文件会先保留为 LFS 指针，占用很小；`validate.py`、`export.py`、`retrieve_context.py`
-仍可直接使用 `data/` 下的 YAML。以后需要重新导入或核对原始 Excel 时，再运行：
-
-```bash
-git lfs pull --include="knowledge/*.xlsx,00-基础知识.xlsx"
-```
-
-维护者新增、修改或删除 Excel 后，也要通过 Git LFS 提交指针和对象：
-
-```bash
-# 修改已有 Excel 后：重新暂存该文件，Git LFS 会写入新的对象
-git add knowledge/XX-某科.xlsx
-
-# 修改基础知识参考表后：它也由 Git LFS 管理，但不参与物种导入
-git add 00-基础知识.xlsx
-
-# 新增 knowledge/ 下的物种工作簿：已匹配 knowledge/*.xlsx LFS 规则
-git add knowledge/XX-新科.xlsx
-
-# 新增其它位置的 Excel：先添加明确 LFS 规则，再暂存文件
-git lfs track "path/to/file.xlsx"
-git add .gitattributes path/to/file.xlsx
-
-# 删除 Excel：用 git rm 记录删除
-git rm knowledge/XX-某科.xlsx
-```
-
-提交前用下面命令确认 Excel 处于 LFS 管理状态：
-
-```bash
-git lfs status
-git diff --cached --stat
-```
-
-确认暂存范围正确后再 `git commit` 和 `git push`。推送时 Git LFS 会自动上传新增或修改后的大文件对象。
+维护者需要重导或核对原文时，应从独立备份把工作簿放回本地对应路径。不要使用 `git add -f`
+绕过忽略规则，也不要把这些文件重新提交到本仓库。未准备本地工作簿时，导入命令不可用，
+依赖真实工作簿的单元测试会自动跳过；YAML 校验、导出和检索不受影响。
 
 ## 快速开始
 
@@ -239,8 +179,8 @@ python3 scripts/retrieve_context.py "哪些植物未在大连发现？"
 Excel 原始数据在 `knowledge/`，文件名须遵循 `<拼音首字母>-<中文科名>.xlsx`（如 `KM-苦木科.xlsx`）——
 科目录名就是文件名去掉拼音前缀的部分。改动 xlsx 后按下面重跑三步：**导入 → 校验 → 重建导出**。
 
-根目录的 `00-基础知识.xlsx` 是基础知识参考表，不是“一个科对应一个工作簿”的物种数据源。
-修改它后只需要按 Git LFS 流程 `git add 00-基础知识.xlsx` 并提交；不要用 `import_xlsx.py` 导入它。
+根目录的 `00-基础知识.xlsx` 是本地基础知识参考表，不是“一个科对应一个工作簿”的物种数据源，
+也不纳入 Git。修改它后不要用 `import_xlsx.py` 导入，也不要提交到本仓库。
 
 **A. 新增一个科（放入一个新 xlsx）**
 
@@ -274,7 +214,8 @@ rm -rf dist && python3 scripts/export.py
 
 物种相关知识主要参考 [植物科学数据中心](https://www.plantplus.cn/cn)，并结合在大连的实际观察与整理记录进行结构化。
 
-`knowledge/` 中的 xlsx 是 **WPS Office** 工作簿，内嵌 JPEG 照片（故文件较大）；`00-基础知识.xlsx`
-是基础知识参考表。日常修订应直接改 `data/` 下的 YAML，Excel 文件仅在需要重新导入、补充来源或核对原文时使用。
+本地 `knowledge/` 中的 xlsx 是 **WPS Office** 工作簿，内嵌 JPEG 照片（故文件较大）；
+`00-基础知识.xlsx` 是本地基础知识参考表。两者均不随 Git 仓库分发。日常修订应直接改
+`data/` 下的 YAML，Excel 文件仅在需要重新导入、补充来源或核对原文时使用。
 
 面向 AI 协作者的详细工作流与约定见 [`CLAUDE.md`](CLAUDE.md)。
