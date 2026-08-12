@@ -1,3 +1,4 @@
 - [记忆同步策略](feedback_memory_sync_policy.md) — 无敏感信息保存到项目记忆，有敏感信息不写入并告知
 - [Git 提交身份](feedback_git_identity.md) — 提交一律用 Michael Leo <yhzemail61010@aliyun.com>，勿用公司邮箱
+- [Git 推送用 Token](feedback_push_token.md) — 推送用用户当场提供的 PAT，一次性内联 URL，绝不落盘（默认凭证 403）
 - GH_TOKEN 配置 — 使用 GH_TOKEN 环境变量进行 GitHub 操作（敏感，仅存 Claude Code 内部记忆，未写入本目录）

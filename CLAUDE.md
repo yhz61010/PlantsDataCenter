@@ -134,6 +134,7 @@ xlsx 中的物种记录抽取为逐物种的 YAML，并可再导出为多种格�
 - Git commit message 使用英文编写。
 - 代码注释使用英文编写。
 - Git 提交统一使用 `Michael Leo <yhzemail61010@aliyun.com>` 作为提交身份。
+- `git push` 需用用户当场提供的 PAT 走一次性内联 URL 推送（默认凭证对本仓库 403）；token 绝不落盘、输出对 `github_pat_*` 掩码。详见记忆 `.claude/memory/feedback_push_token.md`。
 
 ## 项目记忆
 
