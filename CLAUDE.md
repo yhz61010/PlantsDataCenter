@@ -43,6 +43,7 @@ PlantsDataCenter 是一个**植物学参考数据集与结构化数据仓库**�
 
 ## 数据操作说明
 
+- **运行时依赖**：Python 3.11+ 与 PyYAML 6.x（读写 `data/**/*.yaml`）；其余用标准库，**不需要 `openpyxl`**。
 - 这些文件是 **WPS Office xlsx**（工作簿 XML 使用 `dbsheet` 命名空间，并包含
   `xl/woinfos.xml`）。可用 Excel/WPS/LibreOffice 打开，但注意内嵌图片工作表是 WPS 专有的，
   用其他工具可能无法完整往返转换。
