@@ -18,6 +18,7 @@
 PlantsDataCenter/
 ├── data/               # 日常真相源：每物种一个 YAML；data/<拼音首字母>-<中文科名>/<中文物种名>.yaml
 ├── knowledge/          # 本地原始 WPS xlsx（被忽略，不随仓库分发）
+├── 00-基础知识.xlsx     # 本地基础知识参考表（被忽略，不随仓库分发）
 ├── dist/               # 派生导出物（被 .gitignore 忽略，可由 export.py 重建）
 │   ├── YYYYMMDD-plants.json
 │   ├── YYYYMMDD-plants.md
@@ -26,7 +27,8 @@ PlantsDataCenter/
 ├── scripts/            # Python 数据管线（4 个 CLI + 3 个复用模块）
 ├── schema/             # 字段规范（人读的权威定义）
 ├── tests/              # 单元测试（python3 -m unittest）
-├── docs/               # 设计文档与实现计划（superpowers 产物）
+├── skills/             # repo-local skills（enable-ai、plants-expert）
+├── docs/               # 普通协作文档及 superpowers 设计/实现计划
 ├── DATA_STATS.md       # data/ 当前科数、总物种数与每科物种数统计
 ├── .claude/            # Claude Code 命令与共享记忆文件
 ├── AGENTS.md           # 面向 Codex/自动化协作者的仓库指南
