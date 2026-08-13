@@ -2,7 +2,7 @@
 
 ## 项目结构与模块组织
 
-PlantsDataCenter 是植物知识结构化数据仓库。`data/` 是唯一真相源，当前包含 53 科、157 个 `*.yaml` 物种文件，路径为 `data/<拼音首字母>-<中文科名>/<中文物种名>.yaml`；根目录 `DATA_STATS.md` 记录当前科数、总物种数与每科物种数。本地 `knowledge/` 可保存 53 个 WPS/Excel 物种原始工作簿，`00-基础知识.xlsx` 是本地基础知识参考表；两者均被 `.gitignore` 忽略，不随仓库分发，只在重导、补充来源或核对原文时使用。仓库不再配置或使用 Git LFS。`scripts/` 是 Python 数据管线，CLI 入口为 `import_xlsx.py`、`validate.py`、`export.py`、`retrieve_context.py`，复用模块为 `xlsx_reader.py`、`parser.py`、`yaml_io.py`。`schema/plant.schema.md` 定义字段规范，`tests/` 放 `unittest`，`docs/superpowers/specs/` 与 `docs/superpowers/plans/` 放设计和实现计划。`dist/` 是可重建导出物，已忽略，不作为提交对象。
+PlantsDataCenter 是植物知识结构化数据仓库。`data/` 是唯一真相源，当前包含 55 科、159 个 `*.yaml` 物种文件，路径为 `data/<拼音首字母>-<中文科名>/<中文物种名>.yaml`；根目录 `DATA_STATS.md` 记录当前科数、总物种数与每科物种数。本地 `knowledge/` 可保存 55 个 WPS/Excel 物种原始工作簿，`00-基础知识.xlsx` 是本地基础知识参考表；两者均被 `.gitignore` 忽略，不随仓库分发，只在重导、补充来源或核对原文时使用。仓库不再配置或使用 Git LFS。`scripts/` 是 Python 数据管线，CLI 入口为 `import_xlsx.py`、`validate.py`、`export.py`、`retrieve_context.py`，复用模块为 `xlsx_reader.py`、`parser.py`、`yaml_io.py`。`schema/plant.schema.md` 定义字段规范，`tests/` 放 `unittest`，`docs/superpowers/specs/` 与 `docs/superpowers/plans/` 放设计和实现计划。`dist/` 是可重建导出物，已忽略，不作为提交对象。
 
 ## Build, Test, and Development Commands
 
@@ -37,6 +37,22 @@ python3 -m unittest discover -s tests
 
 Git 历史使用简短英文 conventional-style 主题，例如 `docs: ...`、`chore: ...`、`fix: ...`、`data: ...`、`harden: ...`。提交应聚焦一个逻辑变更；不要提交 `knowledge/`、`00-基础知识.xlsx` 或 `dist/`，除非任务明确改变仓库策略。PR 需说明数据或脚本改动、列出已运行的校验/测试命令、注明是否从本地 `knowledge/` 重导，并点名任何重命名或删除的物种，方便检查残留 YAML。
 
+## Codex 文档路径
+
+本项目由 Codex 生成的协作文档统一存放在 `docs/`。
+
+| 路径 | 用途 |
+|------|------|
+| `docs/` | 普通分析、审查与说明文档 |
+| `docs/superpowers/specs/` | 设计文档 |
+| `docs/superpowers/plans/` | 实现计划 |
+
+生成文档使用中文和 UTF-8；普通文档文件名使用 `YYYY-MM-DD-<kebab-case-topic>.md`。
+
+## 项目记忆
+
+项目共享协作规则以根目录 `AGENTS.md` 为准。本项目未配置 repo-local 或外部记忆快照；不要引用不存在的 `MEMORY.md`。`enable-ai` 仅服务 Codex；Codex 不读取、创建、修改或同步 `CLAUDE.md`、`.claude/**` 及其它 AI 工具配置。
+
 ## Agent-Specific Instructions
 
-以当前代码、`README.md` 和 `CLAUDE.md` 为事实源；若文档口径冲突，先用当前文件与命令验证。不要臆造依赖、数据规模或 Git 状态。更新 README、AGENTS、CLAUDE 或任何数据规模相关文档时，同步核对并更新根目录 `DATA_STATS.md`。保留用户未要求处理的本地文件，例如未跟踪归档或临时材料。重命名或删除物种后，手动清理旧 `data/<拼音首字母>-<科>/<旧名>.yaml`，再重新校验。
+以当前代码、`README.md`、`DATA_STATS.md` 和 `schema/plant.schema.md` 为事实源；若文档口径冲突，先用当前文件与命令验证。不要臆造依赖、数据规模或 Git 状态。更新 README、AGENTS 或任何数据规模相关文档时，同步核对并更新根目录 `DATA_STATS.md`。保留用户未要求处理的本地文件，例如未跟踪归档或临时材料。重命名或删除物种后，手动清理旧 `data/<拼音首字母>-<科>/<旧名>.yaml`，再重新校验。

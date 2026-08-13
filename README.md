@@ -6,7 +6,7 @@
 本知识库主体记录的是在**大连**实际遇到、观察或整理过的植物，不代表完整的区域植物志名录。
 少量为物种对比与学习而收录、但尚未在大连发现过的植物，会用可选字段 `是否发现: 否` 标记。
 
-- **53 科 · 157 物种，其中大连已发现 148 物种**
+- **55 科 · 159 物种，其中大连已发现 150 物种**
 - **数据统计**：当前科数、总物种数与每科物种数见 [`DATA_STATS.md`](DATA_STATS.md)
 - **一个运行时依赖**：Python 3.11+ + PyYAML（无需 `openpyxl`）
 - **单向管线**：本地 `knowledge/*.xlsx`（物种原始表）→ `data/**/*.yaml`（真相源）→ `dist/*`（派生物）
@@ -217,4 +217,5 @@ rm -rf dist && python3 scripts/export.py
 不随 Git 仓库分发。日常修订应直接改 `data/` 下的 YAML，Excel 文件仅在需要重新导入、
 补充来源或核对原文时使用。
 
-面向 AI 协作者的详细工作流与约定见 [`CLAUDE.md`](CLAUDE.md)。
+Codex 与自动化协作者的详细工作流与约定见 [`AGENTS.md`](AGENTS.md)；Claude Code 的项目说明见
+[`CLAUDE.md`](CLAUDE.md)。
