@@ -75,13 +75,15 @@ class TestParser(unittest.TestCase):
         self.assertEqual(r["元数据"]["来源文件"], "KM-苦木科.xlsx")
         self.assertEqual(r["元数据"]["来源工作表"], "臭椿")
 
-    def test_zijing_continuation_and_stray_paragraph(self):
+    def test_zijing_continuation_and_flora_after_gap(self):
         # 紫荆：功用价值.植物文化 是一首诗，续行（C-only）应拼进该子键而非植物志；
-        # 该物种无尾部植物志；行尾一段无标签 B-only 段落应进 备注（不丢弃）。
+        # 空行之后的 C-only 长文是完整植物志，应与前面的诗分开。
         r = load("knowledge/D-豆科.xlsx", "紫荆")
         self.assertIn("杜甫", r["功用价值"]["植物文化"])     # 诗尾署名并入子键
-        self.assertEqual(r["植物志"], "暂无数据")            # 诗未被误当植物志
-        self.assertIn("木本花卉", r.get("备注", ""))         # 游离段落被保留
+        self.assertNotIn("杜甫", r["植物志"])                    # 诗未被误当植物志
+        self.assertTrue(r["植物志"].startswith("4. 紫荆"))
+        self.assertIn("下级分类", r["植物志"])
+        self.assertNotIn("备注", r)
 
     def test_jishutiao_taxonomy_footnote_to_notes(self):
         # 鸡树条：分类系统内（科与属之间）插入的脚注属原子分类阶之外，应进 备注，
@@ -99,20 +101,19 @@ class TestParser(unittest.TestCase):
         self.assertIn("霓裳", r["功用价值"]["植物文化"])
         self.assertNotIn("霓裳", r["植物志"])
 
-    def test_jinzhonghua_chinese_note_not_synonym_and_image_caption(self):
-        # 金钟花：异名段里混入中文说明（无 (synonym) 标记），不得当作异名，应进 备注；
-        # 真正的拉丁异名仍保留；尾部“下图是…图片”是图片说明，不得进入植物志。
-        r = load("knowledge/MX-木樨科.xlsx", "金钟花")
+    def test_jinzhonghua_current_synonym_and_empty_flora(self):
+        # 金钟花最新工作表只保留一个拉丁异名，无尾部植物志或备注。
+        r = load("knowledge/MX-木犀科.xlsx", "金钟花")
         self.assertEqual(r["异名"], ["Rangium viridissimum"])
-        self.assertIn("区别", r.get("备注", ""))
+        self.assertEqual(r["分类系统"]["科"], "Oleaceae-木犀科(mù xī kē)")
         self.assertEqual(r["植物志"], "暂无数据")
-        self.assertIn("髓部图片", r.get("备注", ""))
+        self.assertNotIn("备注", r)
 
     def test_lianqiao_comparison_table_not_dropped(self):
         # 连翘：异名段内嵌入“连翘 vs 金钟花”对比表（B/C 同行），
         # 其 C 值不得静默丢弃，应连同 B 标签进 备注。断言真正被抢救的表格 C 值
         # （旧代码会丢，故该断言对旧代码为假、对新代码为真）。
-        r = load("knowledge/MX-木樨科.xlsx", "连翘")
+        r = load("knowledge/MX-木犀科.xlsx", "连翘")
         self.assertIn("原生种", r.get("备注", ""))            # 表格 C 值被保留
         self.assertIn("枝条中心是空的", r.get("备注", ""))     # 另一表格 C 值
         self.assertTrue(r["植物志"].startswith("1. 连翘"))    # 真正的植物志仍保留

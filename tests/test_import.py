@@ -12,7 +12,7 @@ class TestImport(unittest.TestCase):
 
     def test_family_dir_from_filename(self):
         self.assertEqual(family_dir("knowledge/KM-苦木科.xlsx"), "KM-苦木科")
-        self.assertEqual(family_dir("knowledge/MX-木樨科.xlsx"), "MX-木樨科")
+        self.assertEqual(family_dir("knowledge/MX-木犀科.xlsx"), "MX-木犀科")
 
     @unittest.skipUnless(HAS_LOCAL_WORKBOOKS, "requires local knowledge workbooks")
     def test_import_writes_yaml_that_roundtrips(self):

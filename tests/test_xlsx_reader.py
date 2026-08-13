@@ -38,9 +38,9 @@ class TestXlsxReader(unittest.TestCase):
 
     @unittest.skipUnless(HAS_LOCAL_WORKBOOKS, "requires local knowledge workbooks")
     def test_dispimg_in_c_column_filtered(self):
-        # MX-木樨科.xlsx 的“金钟花”把 DISPIMG 图片公式放在 C 列，
+        # MX-木犀科.xlsx 的“金钟花”把 DISPIMG 图片公式放在 C 列，
         # 仅靠列过滤不够，必须按值前缀过滤。
-        sheets = read_sheets("knowledge/MX-木樨科.xlsx")
+        sheets = read_sheets("knowledge/MX-木犀科.xlsx")
         for name, rows in sheets:
             if name != "金钟花":
                 continue
