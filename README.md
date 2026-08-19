@@ -7,7 +7,7 @@
 少量为物种对比与学习而收录、但尚未在大连发现过的植物，会用可选字段 `是否发现: 否` 标记。
 
 - **58 科 · 165 物种，其中大连已发现 154 物种**
-- **数据统计**：当前科、属、物种规模，松科/柏科及生活型统计见 [`DATA_STATS.md`](DATA_STATS.md)
+- **数据统计**：当前科、属、物种规模，以及逐科、松科/柏科和生活型的物种总数与大连发现/未发现拆分，见 [`DATA_STATS.md`](DATA_STATS.md)
 - **一个运行时依赖**：Python 3.11+ + PyYAML（无需 `openpyxl`）
 - **单向管线**：本地 `knowledge/*.xlsx`（物种原始表）→ `data/**/*.yaml`（真相源）→ `dist/*`（派生物）
 - **可重建数据层**：日常以 `data/` 为准；维护者可用本地工作簿重新导入，重建对应 YAML。
@@ -29,7 +29,7 @@ PlantsDataCenter/
 ├── tests/              # 单元测试（python3 -m unittest）
 ├── skills/             # repo-local skills（enable-ai、plants-expert）
 ├── docs/               # 普通协作文档及 superpowers 设计/实现计划
-├── DATA_STATS.md       # data/ 当前科、属、物种与生活型统计
+├── DATA_STATS.md       # data/ 当前科、属、物种、松柏科与生活型统计（含大连发现状态拆分）
 ├── .claude/            # Claude Code 命令与共享记忆文件
 ├── AGENTS.md           # 面向 Codex/自动化协作者的仓库指南
 ├── CLAUDE.md           # 面向 Claude Code 的项目说明

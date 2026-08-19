@@ -2,7 +2,7 @@
 
 ## 项目结构与模块组织
 
-PlantsDataCenter 是植物知识结构化数据仓库。`data/` 是唯一真相源，当前包含 58 科、165 个 `*.yaml` 物种文件，路径为 `data/<拼音首字母>-<中文科名>/<中文物种名>.yaml`；根目录 `DATA_STATS.md` 记录当前科、属和物种数量，以及松科/柏科与木本/草本生活型统计。本地 `knowledge/` 可保存 58 个 WPS/Excel 物种原始工作簿，`00-基础知识.xlsx` 是本地基础知识参考表；两者均被 `.gitignore` 忽略，不随仓库分发，只在重导、补充来源或核对原文时使用。仓库不再配置或使用 Git LFS。`scripts/` 是 Python 数据管线，CLI 入口为 `import_xlsx.py`、`validate.py`、`export.py`、`retrieve_context.py`，复用模块为 `xlsx_reader.py`、`parser.py`、`yaml_io.py`。`schema/plant.schema.md` 定义字段规范，`tests/` 放 `unittest`，`docs/superpowers/specs/` 与 `docs/superpowers/plans/` 放设计和实现计划。`dist/` 是可重建导出物，已忽略，不作为提交对象。
+PlantsDataCenter 是植物知识结构化数据仓库。`data/` 是唯一真相源，当前包含 58 科、165 个 `*.yaml` 物种文件，路径为 `data/<拼音首字母>-<中文科名>/<中文物种名>.yaml`；根目录 `DATA_STATS.md` 记录当前科、属和物种数量，以及松科/柏科与木本/草本生活型统计，各项物种数同时体现大连发现/未发现拆分。本地 `knowledge/` 可保存 58 个 WPS/Excel 物种原始工作簿，`00-基础知识.xlsx` 是本地基础知识参考表；两者均被 `.gitignore` 忽略，不随仓库分发，只在重导、补充来源或核对原文时使用。仓库不再配置或使用 Git LFS。`scripts/` 是 Python 数据管线，CLI 入口为 `import_xlsx.py`、`validate.py`、`export.py`、`retrieve_context.py`，复用模块为 `xlsx_reader.py`、`parser.py`、`yaml_io.py`。`schema/plant.schema.md` 定义字段规范，`tests/` 放 `unittest`，`docs/superpowers/specs/` 与 `docs/superpowers/plans/` 放设计和实现计划。`dist/` 是可重建导出物，已忽略，不作为提交对象。
 
 ## Build, Test, and Development Commands
 
